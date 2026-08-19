@@ -882,6 +882,87 @@
     .catalog{max-height:none;}
     .hero-grid{grid-template-columns:1fr; gap:34px;}
   }
+  /* ============ TRYB PROWADZONY NA TELEFONIE (do 900 px) ============
+     Jeden krok na ekranie, scena zawsze u góry, dolny pasek z „Dalej”.
+     Wszystko poniżej działa tylko przy body.prowadzony, więc desktop
+     nie widzi żadnej z tych reguł. */
+  .kroki{display:none;}
+  .krok-nav{display:none;}
+  .toast{position:fixed; left:50%; bottom:84px; transform:translateX(-50%) translateY(12px);
+    background:#14181B; color:#F2EEE6; font-size:13.5px; line-height:1.45; padding:11px 16px;
+    border-radius:12px; max-width:min(92vw,420px); box-shadow:0 12px 30px rgba(0,0,0,.32);
+    opacity:0; pointer-events:none; transition:opacity .22s, transform .22s; z-index:90;}
+  .toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
+  .krok4-akcje{display:flex; gap:8px; margin:12px 0 4px;}
+  .krok4-akcje button{flex:1 1 0; padding:11px 10px; border-radius:11px; cursor:pointer;
+    border:1.5px solid var(--ink); background:transparent; color:var(--ink);
+    font-family:inherit; font-size:13.5px; font-weight:600;}
+  .krok4-akcje button:active{background:var(--ink); color:var(--paper);}
+
+  @media (max-width:900px){
+    body.prowadzony .kroki{display:flex; gap:6px; padding:9px 10px; overflow-x:auto;
+      background:#121618; border-top:1px solid rgba(255,255,255,.08); scrollbar-width:none;}
+    body.prowadzony .kroki::-webkit-scrollbar{display:none;}
+    body.prowadzony .kchip{display:flex; align-items:center; gap:6px; white-space:nowrap;
+      padding:7px 11px; border-radius:999px; cursor:pointer; font-family:inherit; font-size:12.5px;
+      border:1px solid rgba(255,255,255,.16); background:transparent; color:#9BA4A8;}
+    body.prowadzony .kchip .kn{display:inline-flex; align-items:center; justify-content:center;
+      width:17px; height:17px; border-radius:50%; font-size:10.5px; font-weight:700;
+      background:rgba(255,255,255,.12); color:#C9D1D4;}
+    body.prowadzony .kchip.on{background:var(--oak); border-color:var(--oak); color:#231705; font-weight:600;}
+    body.prowadzony .kchip.on .kn{background:rgba(0,0,0,.22); color:#231705;}
+
+    /* jeden krok naraz */
+    /* Chowamy kroki nieaktywne zamiast wymuszać display na aktywnych — inaczej
+       reguła kroku nadpisałaby własny układ elementu (katalog jako siatka,
+       przełączniki jako flex). */
+    body.prowadzony .shell[data-krok="1"] [data-k]:not([data-k="1"]),
+    body.prowadzony .shell[data-krok="2"] [data-k]:not([data-k="2"]),
+    body.prowadzony .shell[data-krok="3"] [data-k]:not([data-k="3"]),
+    body.prowadzony .shell[data-krok="4"] [data-k]:not([data-k="4"]){display:none;}
+    body.prowadzony .col.pusta{display:none;}
+    body.prowadzony .col{padding:16px 14px 22px;}
+
+    /* scena: niższa, bo nad nią jest pasek kroków, a pod nią panel */
+    body.prowadzony #stage{height:min(38vh,300px);}
+    body.prowadzony .scene-toggles{display:none;}   /* te same przełączniki są w kroku 2 */
+    body.prowadzony .views{gap:4px;}
+    body.prowadzony .hint{display:none;}
+
+    /* gesty: domyślnie palec przewija stronę, dopiero „Popraw ręcznie” oddaje go scenie */
+    body.prowadzony #stage{touch-action:pan-y;}
+    body.prowadzony .shell.recznie #stage{touch-action:none; height:min(62vh,460px);}
+    body.prowadzony .shell.recznie .kroki{display:none;}
+
+    /* katalog jako siatka kafelków — 3600 px listy nikt nie przewinie */
+    body.prowadzony .catalog{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+    body.prowadzony .catalog .cgroup{grid-column:1 / -1; margin-top:6px;}
+    body.prowadzony .catalog .card{position:relative; flex-direction:column; align-items:flex-start;
+      gap:6px; padding:10px; min-height:96px;}
+    body.prowadzony .catalog .card .cp{align-self:flex-start;}
+    body.prowadzony .catalog .card.wybrany{border-color:var(--oak); background:rgba(193,138,58,.10);}
+    body.prowadzony .cq{position:absolute; top:6px; right:6px; font-family:'IBM Plex Mono',monospace;
+      font-size:11px; font-weight:700; color:#231705; background:var(--oak);
+      padding:2px 7px; border-radius:999px;}
+    body.prowadzony .cq:empty{display:none;}
+    body.prowadzony .cminus{position:absolute; bottom:6px; right:6px; width:30px; height:30px;
+      border-radius:9px; border:1px solid var(--line); background:var(--paper); color:var(--ink);
+      font-size:17px; line-height:1; cursor:pointer;}
+
+    /* dolny pasek nawigacji */
+    body.prowadzony.znav .krok-nav{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:80;
+      align-items:center; gap:10px; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(252,250,246,.96); backdrop-filter:blur(10px);
+      border-top:1px solid var(--line);}
+    body.prowadzony .krok-nav button{padding:12px 16px; border-radius:12px; font-family:inherit;
+      font-size:14px; font-weight:600; cursor:pointer;}
+    body.prowadzony .kn-back{border:1.5px solid var(--line); background:transparent; color:var(--ink);}
+    body.prowadzony .kn-back:disabled{opacity:.35;}
+    body.prowadzony .kn-next{flex:1 1 auto; border:none; background:var(--ink); color:var(--paper);}
+    body.prowadzony .kn-info{flex:1 1 auto; text-align:center; font-size:12px; color:var(--mute);}
+    body.prowadzony .kn-next[hidden]{display:none;}
+    body.prowadzony.znav{padding-bottom:76px;}
+  }
 </style>
 </head>
 <body>
@@ -2515,7 +2596,7 @@ function buildCatalogUI(){
     if(catFilter==='all'){const l=document.createElement('div'); l.className='cgroup'; l.textContent=gr; host.appendChild(l);}
     list.filter(c=>c.group===gr).forEach(cat=>{
       const hex='#'+cat.color.toString(16).padStart(6,'0'), ph=photoOf(cat.id);
-      const row=document.createElement('div'); row.className='card';
+      const row=document.createElement('div'); row.className='card'; row.dataset.cat=cat.id;
       row.innerHTML=`${ph?`<img class="thumb" src="${ph}" alt="${cat.name}" loading="lazy" data-fallback="${hex}" onerror="photoFail(this)">`
                         :`<span class="chip" style="background:${hex}"></span>`}
         <span><span class="cn">${cat.name}</span><br><span class="cd">${Math.round(cat.w*100)}×${Math.round(cat.d*100)}×${Math.round(cat.h*100)}</span></span>
@@ -2534,9 +2615,9 @@ function buildFinishUI(){
 
 /* --- wstawianie --- */
 function addItem(catId){
-  if(!itemGroup){ alert('Podgląd 3D jeszcze się ładuje — spróbuj za chwilę.'); return; }
+  if(!itemGroup){ komunikat('Podgląd 3D jeszcze się ładuje — spróbuj za chwilę.'); return; }
   const cat=CATALOG.find(c=>c.id===catId);
-  if(cat.w>G.w-0.05||cat.d>G.d-0.05){alert('Ten element nie mieści się w podanych wymiarach garażu.');return;}
+  if(cat.w>G.w-0.05||cat.d>G.d-0.05){komunikat('Ten element nie mieści się w podanych wymiarach garażu.');return;}
   const uid=catId+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
   const obj=makeProductMesh(cat); obj.userData.uid=uid; itemGroup.add(obj);
   const n=placed.filter(p=>p.catId===catId).length;
@@ -2549,7 +2630,7 @@ function addItem(catId){
     const spot=findFreeSpot(it);
     if(!spot){
       itemGroup.remove(obj);
-      alert('Nie ma już wolnego miejsca na ten element — usuń coś albo powiększ garaż.');
+      komunikat('Nie ma już wolnego miejsca na ten element — usuń coś albo powiększ garaż.');
       return;
     }
     it.x=spot.x; it.z=spot.z;
@@ -2703,7 +2784,7 @@ canvas.addEventListener('pointerdown',e=>{
     dragPlane.set(new THREE.Vector3(0,1,0),-(cat.mount==='floor'?0:hit.y));
     raycaster.setFromCamera(pointer,camera); const p=new THREE.Vector3();
     raycaster.ray.intersectPlane(dragPlane,p); dragOffset.set(hit.x-p.x,0,hit.z-p.z);
-  } else {select(null); orbiting=true; lastP={x:e.clientX,y:e.clientY};}
+  } else {select(null); if(!obrotZablokowany||mode==='walk'){orbiting=true; lastP={x:e.clientX,y:e.clientY};}}
   canvas.classList.add('dragging'); canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove',e=>{
@@ -3981,6 +4062,272 @@ if(typeof THREE==='undefined'){
     document.getElementById('loading').textContent='Podgląd 3D nie wystartował — reszta planera działa normalnie.';
   }
 }
+
+/* ==================== TRYB PROWADZONY (telefon i mały tablet) ====================
+   Na ekranie 375 px trzy panele naraz są nie do ogarnięcia dla kogoś, kto widzi
+   planer pierwszy raz: katalog ma 3600 px wysokości, a przesuwanie mebla palcem
+   po scenie 3D wymaga celowania w kilkumilimetrowy obiekt.
+   Dlatego poniżej 900 px planer zamienia się w cztery kroki, a rozstawianie
+   robi program — użytkownik tylko wybiera, co ma stać w garażu.
+   Powyżej 900 px nic się nie zmienia: desktop zostaje trzykolumnowy. */
+
+const MOBILE_MQ = window.matchMedia('(max-width:900px)');
+let krokAktywny = 1;
+let recznieUstawiane = false;    /* czy użytkownik sam przesunął cokolwiek */
+let obrotZablokowany = false;    /* w trybie prowadzonym tło nie obraca kamery */
+
+const KROKI = [
+  {n:1, tyt:'Wymiary',     dalej:'Dalej: auto'},
+  {n:2, tyt:'Auto',        dalej:'Dalej: wyposażenie'},
+  {n:3, tyt:'Wyposażenie', dalej:'Pokaż wynik'},
+  {n:4, tyt:'Wynik',       dalej:''}
+];
+
+/* Zamiast dublować kod HTML przypisujemy numer kroku istniejącym blokom.
+   Granice poznajemy po tym, co w nich stoi, więc dopisanie pola w środku
+   sekcji niczego nie psuje. */
+function przypiszKroki(){
+  const kolumny=[...document.querySelectorAll('.shell > .col')];
+  if(kolumny.length<2) return;
+  let k=1;
+  [...kolumny[0].children].forEach(el=>{
+    if(el.querySelector && el.querySelector('#carToggle')) k=2;
+    if(el.classList.contains('ctitle') && /Wyposa/.test(el.textContent)) k=3;
+    el.dataset.k=k;
+  });
+  [...kolumny[1].children].forEach(el=>el.dataset.k=4);
+}
+
+/* ---- automatyczne rozstawianie ----
+   Nikt nie stawia regału na środku garażu. Idziemy po obwodzie co 5 cm
+   i szukamy pierwszego wolnego miejsca: najpierw ściana tylna, potem boczne,
+   a ścianę z bramą zostawiamy na koniec, żeby nie zastawiać wjazdu. */
+function miejsceNaObwodzie(it){
+  const cat=katOf(it), m=0.03, skok=0.05;
+  if(cat.mount==='ceil') return null;
+  const proby=[];
+  const wzdluz=(rot)=>{
+    const sw=(rot%2)===1, w=sw?cat.d:cat.w, d=sw?cat.w:cat.d;
+    if(w>G.w-2*m || d>G.d-2*m) return;
+    if(rot===0){const z=-G.d/2+d/2+m; for(let x=-G.w/2+w/2+m;x<=G.w/2-w/2-m+1e-6;x+=skok) proby.push({x:x,z:z,rot:rot});}
+    if(rot===1){const x=-G.w/2+w/2+m; for(let z=-G.d/2+d/2+m;z<=G.d/2-d/2-m+1e-6;z+=skok) proby.push({x:x,z:z,rot:rot});}
+    if(rot===3){const x= G.w/2-w/2-m; for(let z=-G.d/2+d/2+m;z<=G.d/2-d/2-m+1e-6;z+=skok) proby.push({x:x,z:z,rot:rot});}
+    if(rot===2){const z= G.d/2-d/2-m; for(let x=-G.w/2+w/2+m;x<=G.w/2-w/2-m+1e-6;x+=skok) proby.push({x:x,z:z,rot:rot});}
+  };
+  [0,1,3,2].forEach(wzdluz);
+  /* Najpierw miejsca, które nie wchodzą w drogę do drzwi auta — regał wciśnięty
+     obok drzwi kierowcy jest formalnie „przy ścianie", a praktycznie bez sensu.
+     Dopiero gdy takich miejsc nie ma, bierzemy resztę obwodu. */
+  const auto=carRect();
+  const strefaDrzwi = auto ? {x1:auto.x1-0.65, x2:auto.x2+0.65, z1:auto.z1, z2:auto.z2} : null;
+  const wolne = proby.filter(p=>!collidesAt(it,p.x,p.z,p.rot));
+  if(strefaDrzwi && cat.mount==='floor'){
+    const zDala = wolne.filter(p=>!rectsHit(rectOf(it,p.x,p.z,p.rot),strefaDrzwi));
+    if(zDala.length) return zDala[0];
+  }
+  return wolne.length ? wolne[0] : null;
+}
+
+function ulozAutomatycznie(){
+  if(!placed.length) return 0;
+  const wszystkie=placed.slice();
+  const podloga=wszystkie.filter(p=>dimsOf(p).cat.mount==='floor')
+    .sort((a,b)=>{const A=dimsOf(a),B=dimsOf(b); return B.w*B.d-A.w*A.d;});   /* duże najpierw */
+  const sciana=wszystkie.filter(p=>dimsOf(p).cat.mount==='wall');
+  const sufit =wszystkie.filter(p=>dimsOf(p).cat.mount==='ceil');
+  placed.length=0;                       /* kolizje liczymy tylko z już ułożonymi */
+  let bezMiejsca=0;
+  [...podloga,...sciana,...sufit].forEach(it=>{
+    const p=miejsceNaObwodzie(it);
+    if(p){ it.x=p.x; it.z=p.z; if(!it.recznyObrot) it.rot=p.rot; }
+    placed.push(it);
+    if(!p){
+      const s=findFreeSpot(it);
+      if(s){ it.x=s.x; it.z=s.z; } else bezMiejsca++;
+    }
+    clampItem(it); applyT(it);
+  });
+  select(null); renderList();
+  return bezMiejsca;
+}
+
+function rozstawOdNowa(){
+  const brak=ulozAutomatycznie();
+  recznieUstawiane=false;
+  komunikat(brak ? 'Rozstawiłem, ale '+brak+' rzeczy nie mieści się przy ścianach.'
+                 : 'Rozstawiłem wszystko przy ścianach.');
+}
+
+/* ---- pasek kroków i dolna nawigacja ---- */
+function zbudujPasekKrokow(){
+  if(document.getElementById('kroki')) return;
+  const kol=document.querySelector('.stage-col'); if(!kol) return;
+  const bar=document.createElement('div'); bar.className='kroki'; bar.id='kroki';
+  KROKI.forEach(k=>{
+    const b=document.createElement('button');
+    b.className='kchip'; b.dataset.k=k.n;
+    b.innerHTML='<span class="kn">'+k.n+'</span>'+k.tyt;
+    b.onclick=()=>ustawKrok(k.n);
+    bar.appendChild(b);
+  });
+  kol.appendChild(bar);
+
+  const nav=document.createElement('div'); nav.className='krok-nav'; nav.id='krokNav';
+  nav.innerHTML='<button class="kn-back" id="knBack">Wstecz</button>'+
+                '<span class="kn-info" id="knInfo"></span>'+
+                '<button class="kn-next" id="knNext">Dalej</button>';
+  document.querySelector('.shell').parentNode.appendChild(nav);
+  document.getElementById('knBack').onclick=()=>ustawKrok(krokAktywny-1);
+  document.getElementById('knNext').onclick=()=>ustawKrok(krokAktywny+1);
+}
+
+function ustawKrok(n){
+  n=Math.max(1,Math.min(4,n));
+  krokAktywny=n;
+  const shell=document.querySelector('.shell');
+  shell.dataset.krok=n;
+  document.querySelectorAll('.kchip').forEach(b=>b.classList.toggle('on',+b.dataset.k===n));
+  document.querySelectorAll('.shell > .col').forEach(col=>{
+    col.classList.toggle('pusta', !col.querySelector('[data-k="'+n+'"]'));
+  });
+  const back=document.getElementById('knBack'), next=document.getElementById('knNext'),
+        info=document.getElementById('knInfo');
+  if(back){
+    back.disabled=(n===1);
+    next.hidden=(n===4);
+    next.textContent=KROKI[n-1].dalej||'Dalej';
+    info.textContent = n===3 ? (placed.length? placed.length+' wybrane' : 'dotknij, co ma stać')
+                             : ('krok '+n+' z 4');
+  }
+  if(n===4 && !recznieUstawiane && placed.length){
+    ulozAutomatycznie();
+    /* Treść bierzemy z werdyktu, a nie z licznika centymetrów — licznik bywa
+       pusty (gdy nie ma czego mierzyć), a werdykt jest zawsze jednoznaczny. */
+    const kl=(document.getElementById('vMsg')||{className:''}).className;
+    komunikat(/v-bad/.test(kl)
+        ? 'Rozstawiłem przy ścianach, ale przy tych wymiarach robi się za ciasno — zobacz wynik niżej.'
+      : /v-warn/.test(kl)
+        ? 'Rozstawiłem przy ścianach — przejdziesz, ale ciasno. Szczegóły niżej.'
+        : 'Rozstawiłem wszystko przy ścianach — miejsca wystarczy.');
+  }
+  if(n===4) zdarzenie('krok-wynik'); else if(n===3) zdarzenie('krok-wyposazenie');
+  const st=document.querySelector('.stage-col');
+  if(st) st.scrollIntoView({block:'start',behavior:'smooth'});
+}
+
+/* ---- liczniki przy kafelkach katalogu ---- */
+function usunOstatni(catId){
+  for(let i=placed.length-1;i>=0;i--){ if(placed[i].catId===catId){ removeByUid(placed[i].uid); return; } }
+}
+function odswiezLiczniki(){
+  document.querySelectorAll('#catalog .card[data-cat]').forEach(row=>{
+    const n=placed.filter(p=>p.catId===row.dataset.cat).length;
+    let b=row.querySelector('.cq');
+    if(!b){ b=document.createElement('span'); b.className='cq'; row.appendChild(b); }
+    b.textContent = n ? '× '+n : '';
+    row.classList.toggle('wybrany', !!n);
+    let minus=row.querySelector('.cminus');
+    if(n && !minus){
+      minus=document.createElement('button'); minus.className='cminus'; minus.textContent='−';
+      minus.title='Usuń jeden'; minus.onclick=e=>{e.stopPropagation(); usunOstatni(row.dataset.cat);};
+      row.appendChild(minus);
+    }
+    if(!n && minus) minus.remove();
+  });
+  const info=document.getElementById('knInfo');
+  if(info && krokAktywny===3) info.textContent = placed.length? placed.length+' wybrane' : 'dotknij, co ma stać';
+}
+
+/* krótki komunikat na dole ekranu — bez alertów, które przerywają obsługę */
+let komunikatTimer=null;
+function komunikat(txt){
+  let t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent=txt; t.classList.add('on');
+  clearTimeout(komunikatTimer); komunikatTimer=setTimeout(()=>t.classList.remove('on'),2600);
+}
+
+/* ---- ręczna korekta: scena rośnie i przejmuje gesty ---- */
+function trybReczny(wl){
+  const shell=document.querySelector('.shell');
+  shell.classList.toggle('recznie', wl);
+  const b=document.getElementById('btnRecznie');
+  if(b) b.textContent = wl ? 'Gotowe' : 'Popraw ręcznie';
+  obrotZablokowany = !wl && MOBILE_MQ.matches;
+  if(wl) komunikat('Przeciągaj palcem po scenie. Strona nie przewija się, dopóki nie klikniesz „Gotowe”.');
+  const st=document.querySelector('.stage-col');
+  if(st) st.scrollIntoView({block:'start',behavior:'smooth'});
+}
+
+/* Dolny pasek zasłaniałby stopkę i inne zakładki, więc pokazujemy go tylko
+   wtedy, gdy planer jest na ekranie. */
+let obserwatorPaska=null;
+function pilnujPaskaNawigacji(){
+  const shell=document.querySelector('.shell');
+  if(!shell || obserwatorPaska || !('IntersectionObserver' in window)) return;
+  obserwatorPaska=new IntersectionObserver(w=>{
+    document.body.classList.toggle('znav', w[0].isIntersecting && MOBILE_MQ.matches);
+  },{rootMargin:'-8% 0px -8% 0px'});
+  obserwatorPaska.observe(shell);
+}
+
+/* ---- włączanie i wyłączanie trybu ---- */
+function wlaczProwadzony(){
+  document.body.classList.add('prowadzony');
+  przypiszKroki(); zbudujPasekKrokow(); pilnujPaskaNawigacji();
+  obrotZablokowany=true;
+  const gora=document.querySelector('.vbtn[data-view="gora"]');
+  if(gora) setView('gora',gora);           /* rzut z góry czyta się jak plan mieszkania */
+  ustawKrok(krokAktywny);
+  odswiezLiczniki();
+}
+function wylaczProwadzony(){
+  document.body.classList.remove('prowadzony','znav');
+  const sh=document.querySelector('.shell');
+  if(sh) sh.classList.remove('recznie');
+  document.querySelectorAll('.shell > .col').forEach(c=>c.classList.remove('pusta'));
+  obrotZablokowany=false;
+}
+/* Przełączamy tryb tylko przy faktycznej zmianie, żeby zmiana rozmiaru okna
+   nie kasowała widoku wybranego przez użytkownika. Słuchamy i media query,
+   i zwykłego resize — zdarzenie 'change' potrafi nie dojść, gdy okno zmienia
+   rozmiar w trakcie wczytywania strony. */
+let trybWlaczony=null;
+function odswiezTryb(){
+  const chce=MOBILE_MQ.matches;
+  if(chce===trybWlaczony) return;
+  trybWlaczony=chce;
+  chce ? wlaczProwadzony() : wylaczProwadzony();
+}
+
+/* przyciski dokładane do kroku 4 */
+function dolozPrzyciskiKroku4(){
+  const kolumny=[...document.querySelectorAll('.shell > .col')];
+  const cel=kolumny.length>1 ? kolumny[1].querySelector('.verdict') : null;
+  if(!cel || document.getElementById('btnRecznie')) return;
+  const box=document.createElement('div'); box.className='krok4-akcje';
+  box.innerHTML='<button id="btnRozstaw">Rozstaw od nowa</button>'+
+                '<button id="btnRecznie">Popraw ręcznie</button>';
+  cel.parentNode.insertBefore(box,cel.nextSibling);
+  document.getElementById('btnRozstaw').onclick=()=>rozstawOdNowa();
+  document.getElementById('btnRecznie').onclick=()=>
+    trybReczny(!document.querySelector('.shell').classList.contains('recznie'));
+}
+
+/* przesunięcie mebla palcem = użytkownik wie lepiej, przestajemy rozstawiać za niego */
+canvas.addEventListener('pointermove',()=>{ if(dragItem) recznieUstawiane=true; });
+
+/* liczniki muszą nadążać za każdą zmianą listy */
+const _renderList=renderList;
+renderList=function(){ _renderList.apply(this,arguments); odswiezLiczniki(); };
+const _buildCatalogUI=buildCatalogUI;
+buildCatalogUI=function(){ _buildCatalogUI.apply(this,arguments); odswiezLiczniki(); };
+
+dolozPrzyciskiKroku4();
+odswiezTryb();
+MOBILE_MQ.addEventListener('change',odswiezTryb);
+let mqTimer=null;
+window.addEventListener('resize',()=>{clearTimeout(mqTimer); mqTimer=setTimeout(odswiezTryb,150);});
 </script>
 
 <!-- Licznik odwiedzin GoatCounter: bez ciasteczek, bez danych osobowych.
