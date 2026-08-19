@@ -700,7 +700,7 @@
      Wcześniej płótno rozciągało się na całą wysokość kolumny z katalogiem, przez co
      po kliknięciu produktu trzeba było przewijać w górę, żeby zobaczyć efekt.
      Teraz scena ma ograniczoną wysokość i zostaje przyklejona przy przewijaniu. */
-  .stage-col{align-self:stretch;}   /* kolumna musi być wysoka, inaczej przyklejona scena nie ma po czym jechać */
+  .stage-col{align-self:stretch;   /* kolumna musi być wysoka, inaczej przyklejona scena nie ma po czym jechać */
 
     background:radial-gradient(120% 85% at 50% 8%, #3D464B 0%, #262D31 44%, #14181B 100%);}
   .stage-wrap{flex:none;}
@@ -713,12 +713,12 @@
     .shell{height:min(88vh,900px);}
     .col{overflow-y:auto; overscroll-behavior:contain;}
     .catalog{max-height:none; overflow:visible; padding-right:0;}
-    .stage-col{align-self:stretch; background:var(--paper); display:flex; flex-direction:column;}
+    .stage-col{align-self:stretch; background:var(--paper); display:flex; flex-direction:column; min-height:0;}
     .stage-sticky{position:static; display:flex; flex-direction:column; flex:1 1 auto; min-height:0;}
     .stage-wrap{flex:1 1 auto; min-height:0;}
     #stage{height:auto; flex:1 1 auto; min-height:0;}
   }
-  .stage-sticky{position:sticky; top:14px; z-index:5;
+  .stage-sticky{position:sticky; top:14px; z-index:5;}
 
   @media (max-width:1180px){
     /* na telefonie scena przykleja się do górnej krawędzi, katalog przewija się pod nią */
@@ -866,18 +866,21 @@
 
   :focus-visible{outline:3px solid var(--accent); outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} *{transition:none !important;} }
+  /* ---- telefon: kolumny jedna pod drugą, scena na górze ----
+     Na telefonie .shell przestaje być siatką trzech kolumn — inaczej 664 px
+     treści wpada w 323 px ekranu i planer jest ucięty po bokach.
+     Flex w kolumnie pozwala przenieść scenę przed katalog (order:-1)
+     i utrzymać ją przyklejoną do górnej krawędzi przy przewijaniu. */
   @media (max-width:1180px){
-    /* Na telefonie kolumny układają się jedna pod drugą, a katalog jest PRZED sceną.
-       Przesuwamy scenę na górę i to ją przyklejamy — wtedy przewijasz katalog,
-       a garaż cały czas widać. */
-    .stage-col{order:-1; position:sticky; top:0; z-index:6; align-self:start;}
+    .shell{display:flex; flex-direction:column; height:auto;}
+    .col{border-right:none; border-bottom:1px solid var(--line); width:auto; overflow:visible;}
+    .stage-col{order:-1; position:sticky; top:0; z-index:6; align-self:auto;
+               width:auto; min-height:0; border-right:none;}
     .stage-sticky{position:static;}
-    #stage{height:min(44vh,360px);}
-  }
-  @media (max-width:1180px){
-    .shell{grid-template-columns:1fr;} .col{border-right:none; border-bottom:1px solid var(--line);}
-    .hero-grid{grid-template-columns:1fr; gap:34px;}
+    .stage-wrap{flex:none;}
+    #stage{height:min(46vh,340px); min-height:0; flex:none;}
     .catalog{max-height:none;}
+    .hero-grid{grid-template-columns:1fr; gap:34px;}
   }
 </style>
 </head>
