@@ -163,6 +163,20 @@
   .selbar{position:absolute; top:56px; left:14px; display:none; gap:6px; background:var(--paper);
     border:1.5px solid var(--ink); padding:6px; align-items:center;}
   .selbar.on{display:flex;}
+  .dimedit{position:absolute; top:104px; left:14px; right:14px; display:none; flex-wrap:wrap;
+    gap:8px; align-items:center; background:var(--paper); border:1.5px solid var(--ink);
+    border-radius:10px; padding:9px 11px; z-index:4;}
+  .dimedit.on{display:flex;}
+  .de-name{font-size:12.5px; font-weight:600; color:var(--ink); margin-right:2px;}
+  .dimedit label{display:flex; align-items:center; gap:5px; font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px; color:var(--mute); text-transform:uppercase;}
+  .dimedit input{width:66px; padding:5px 7px; border:1px solid var(--line); border-radius:6px;
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px;}
+  .de-ok,.de-res{border-radius:7px; padding:6px 11px; font-size:12px; cursor:pointer; font-family:inherit;}
+  .de-ok{background:var(--oak); color:#fff; border:none;}
+  .de-ok:hover{background:var(--oak-deep);}
+  .de-res{background:transparent; border:1px solid var(--line); color:var(--slate);}
+  @media (max-width:620px){ .dimedit{top:96px;} .dimedit input{width:58px;} }
   .selbar button{font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:5px 9px; border:1px solid var(--line);
     background:var(--paper); cursor:pointer;}
   .selbar button:hover{border-color:var(--accent);}
@@ -1016,7 +1030,18 @@
         <div class="selbar" id="selBar">
           <span class="sn" id="selName"></span>
           <button onclick="rotateSel()">Obróć 90°</button>
+          <button onclick="przelaczWymiary()">Wymiary</button>
           <button onclick="deleteSel()">Usuń</button>
+        </div>
+        <!-- Wymiary zaznaczonego elementu. Okno u każdego jest inne, więc katalogowe
+             liczby są tylko punktem wyjścia. -->
+        <div class="dimedit" id="dimEdit">
+          <span class="de-name" id="deName"></span>
+          <label>szer<input type="number" id="deW" step="0.05" min="0.05" max="8"></label>
+          <label>gł<input type="number" id="deD" step="0.05" min="0.03" max="8"></label>
+          <label>wys<input type="number" id="deH" step="0.05" min="0.03" max="4"></label>
+          <button class="de-ok" onclick="zastosujWymiary()">Zastosuj</button>
+          <button class="de-res" onclick="resetWymiary()">Domyślne</button>
         </div>
         <div class="pad" id="walkPad">
           <span></span><button onmousedown="wk('f',1)" onmouseup="wk('f',0)" onmouseleave="wk('f',0)" ontouchstart="wk('f',1)" ontouchend="wk('f',0)">▲</button><span></span>
@@ -2485,7 +2510,16 @@ function addItem(catId){
   }
   placed.push(it); clampItem(it); applyT(it); animateIn(obj); select(it); renderList();
 }
-function dimsOf(it){const cat=CATALOG.find(c=>c.id===it.catId), sw=(it.rot%2)===1;
+/* Element może mieć własne wymiary — okno w każdym garażu jest inne, a domyślne
+   120 × 100 cm to tylko punkt wyjścia. Gdy użytkownik poda swoje, pracujemy na
+   kopii wpisu z katalogu, żeby nie popsuć go pozostałym egzemplarzom. */
+function katOf(it){
+  const base=CATALOG.find(c=>c.id===it.catId);
+  if(!base) return null;
+  if(it.w===undefined && it.d===undefined && it.h===undefined) return base;
+  return Object.assign({},base,{w:it.w||base.w, d:it.d||base.d, h:it.h||base.h});
+}
+function dimsOf(it){const cat=katOf(it), sw=(it.rot%2)===1;
   return {w:sw?cat.d:cat.w, d:sw?cat.w:cat.d, h:cat.h, cat};}
 function applyT(it){const {cat}=dimsOf(it);
   it.obj.rotation.y=it.rot*Math.PI/2; it.obj.position.set(it.x, cat.mount==='floor'?0:it.y, it.z);}
@@ -2505,13 +2539,62 @@ function select(it){
   if(it){setEm(it,0x0A1830);
     document.getElementById('selName').textContent=CATALOG.find(c=>c.id===it.catId).name;
     bar.classList.add('on');}
-  else bar.classList.remove('on');
+  else { bar.classList.remove('on'); const de=document.getElementById('dimEdit'); if(de) de.classList.remove('on'); }
   updateSelRing(); renderPreview(); renderList();
 }
+
+/* ---- edytor wymiarów zaznaczonego elementu ---- */
+function przelaczWymiary(){
+  const box=document.getElementById('dimEdit');
+  if(!selected){ box.classList.remove('on'); return; }
+  if(box.classList.contains('on')){ box.classList.remove('on'); return; }
+  const cat=katOf(selected);
+  document.getElementById('deName').textContent=cat.name;
+  document.getElementById('deW').value=+cat.w.toFixed(2);
+  document.getElementById('deD').value=+cat.d.toFixed(2);
+  document.getElementById('deH').value=+cat.h.toFixed(2);
+  box.classList.add('on');
+}
+function przebudujMesh(it){
+  const cat=katOf(it);
+  const nowy=makeProductMesh(cat);
+  nowy.userData.uid=it.uid;
+  itemGroup.remove(it.obj); itemGroup.add(nowy);
+  it.obj=nowy; applyT(it);
+}
+function zastosujWymiary(){
+  if(!selected) return;
+  const base=CATALOG.find(c=>c.id===selected.catId);
+  const licz=(id,min,max,dom)=>{
+    const v=parseFloat(document.getElementById(id).value);
+    return isNaN(v)?dom:Math.max(min,Math.min(max,v));
+  };
+  selected.w=licz('deW',0.05,Math.min(8,G.w),base.w);
+  selected.d=licz('deD',0.03,Math.min(8,G.d),base.d);
+  selected.h=licz('deH',0.03,Math.min(4,G.h),base.h);
+  przebudujMesh(selected);
+  clampItem(selected); applyT(selected);
+  renderList(); updateAnalysis(); autoSave();
+  przelaczWymiary();   // zamyka panel
+  const c=katOf(selected);
+  document.getElementById('deW').value=+c.w.toFixed(2);
+}
+function resetWymiary(){
+  if(!selected) return;
+  delete selected.w; delete selected.d; delete selected.h;
+  przebudujMesh(selected); clampItem(selected); applyT(selected);
+  renderList(); updateAnalysis(); autoSave();
+  const cat=katOf(selected);
+  document.getElementById('deW').value=+cat.w.toFixed(2);
+  document.getElementById('deD').value=+cat.d.toFixed(2);
+  document.getElementById('deH').value=+cat.h.toFixed(2);
+}
+
 function rotateSel(){
   if(!selected)return;
+  selected.recznyObrot=true;   // od tej chwili nie obracamy tego mebla automatycznie
   const nr=(selected.rot+1)%4, ox=selected.x, oz=selected.z;
-  const probe={uid:selected.uid,catId:selected.catId,rot:nr,x:ox,z:oz,y:selected.y};
+  const probe={uid:selected.uid,catId:selected.catId,rot:nr,x:ox,z:oz,y:selected.y,w:selected.w,d:selected.d,h:selected.h};
   clampItem(probe);
   if(collidesAt(selected,probe.x,probe.z,nr)){
     flashBlocked('Po obróceniu element wszedłby w inny — zrób miejsce obok.');
@@ -2609,12 +2692,29 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();
   if(mode==='walk') moveWalk(-e.deltaY*0.0016,0);
   else {orbit.dist=Math.max(1.4,Math.min(26,orbit.dist+e.deltaY*0.006)); updateCam();}},{passive:false});
 
-function snapFloor(it){const {w,d}=dimsOf(it), T=0.3;
-  if(Math.abs(it.x-(-G.w/2+w/2))<T) it.x=-G.w/2+w/2+0.015;
-  if(Math.abs(it.x-( G.w/2-w/2))<T) it.x= G.w/2-w/2-0.015;
-  if(Math.abs(it.z-(-G.d/2+d/2))<T) it.z=-G.d/2+d/2+0.015;
-  if(Math.abs(it.z-( G.d/2-d/2))<T) it.z= G.d/2-d/2-0.015;}
-function snapWall(it){const cat=CATALOG.find(c=>c.id===it.catId);
+/* Regał postawiony przy ścianie ma stać do niej tyłem — nikt nie ustawia szafy
+   bokiem do muru. Dosuwamy i obracamy sami, chyba że użytkownik obrócił mebel
+   ręcznie; wtedy jego decyzja jest ważniejsza. */
+function snapFloor(it){
+  const cat=katOf(it), T=0.45;
+  const dL=it.x+G.w/2, dR=G.w/2-it.x, dB=it.z+G.d/2, dF=G.d/2-it.z;
+  const mn=Math.min(dL,dR,dB,dF);
+  const polowa=Math.max(cat.w,cat.d)/2;
+  if(mn-polowa>T) return;                      // za daleko od ściany, zostawiamy
+  if(it.recznyObrot){                          // sam obrócił — tylko dosuwamy
+    const {w,d}=dimsOf(it);
+    if(mn===dB) it.z=-G.d/2+d/2+0.015;
+    else if(mn===dF) it.z=G.d/2-d/2-0.015;
+    else if(mn===dL) it.x=-G.w/2+w/2+0.015;
+    else it.x=G.w/2-w/2-0.015;
+    return;
+  }
+  if(mn===dB){ it.rot=0; it.z=-G.d/2+cat.d/2+0.015; }
+  else if(mn===dF){ it.rot=2; it.z=G.d/2-cat.d/2-0.015; }
+  else if(mn===dL){ it.rot=1; it.x=-G.w/2+cat.d/2+0.015; }
+  else { it.rot=3; it.x=G.w/2-cat.d/2-0.015; }
+}
+function snapWall(it){const cat=katOf(it);
   const dL=Math.abs(it.x+G.w/2), dR=Math.abs(G.w/2-it.x), dB=Math.abs(it.z+G.d/2);
   const mn=Math.min(dL,dR,dB);
   if(mn===dB){it.rot=0; it.z=-G.d/2+cat.d/2;}
@@ -3007,7 +3107,12 @@ function projectData(){
     garaz:{w:+G.w.toFixed(2), d:+G.d.toFixed(2), h:+G.h.toFixed(2), podloga:floorFinish, sciany:wallFinish},
     brama:{w:+BRAMA.w.toFixed(2), h:+BRAMA.h.toFixed(2)},
     auto:{typ:autoId, kolor:autoKolor, widoczne:!!(document.getElementById('carToggle')||{}).checked},
-    elementy:placed.map(p=>({id:p.catId, x:+p.x.toFixed(2), z:+p.z.toFixed(2), rot:p.rot})),
+    elementy:placed.map(p=>{const e={id:p.catId, x:+p.x.toFixed(2), z:+p.z.toFixed(2), rot:p.rot};
+      if(p.w!==undefined) e.w=+p.w.toFixed(2);
+      if(p.d!==undefined) e.d=+p.d.toFixed(2);
+      if(p.h!==undefined) e.h=+p.h.toFixed(2);
+      if(p.recznyObrot) e.ro=1;
+      return e;}),
     katalog:Object.assign({},shopCart),
     pomiary:{
       najwezsze_cm: a.minPass===null?null:Math.round(a.minPass),
@@ -3047,7 +3152,7 @@ function loadProjectCode(code){
   clearPlaced();
   if(scene) buildRoom();
   buildFinishUI();
-  o.elementy.forEach(e=>placeAt(e.id,e.x,e.z,e.rot));
+  o.elementy.forEach(e=>placeAt(e.id,e.x,e.z,e.rot,{w:e.w,d:e.d,h:e.h,ro:e.ro}));
   if(o.katalog){ shopCart=Object.assign({},o.katalog); }
   activePreset=-1; buildPresets();
   const btn=document.querySelector('.vbtn[data-view="rog"]'); setView('rog',btn);
@@ -3525,12 +3630,20 @@ function clearPlaced(){
   placed=[]; selected=null;
   const bar=document.getElementById('selBar'); if(bar) bar.classList.remove('on');
 }
-function placeAt(catId,x,z,rot){
-  const cat=CATALOG.find(c=>c.id===catId); if(!cat||!itemGroup) return;
+function placeAt(catId,x,z,rot,wlasne){
+  const base=CATALOG.find(c=>c.id===catId); if(!base||!itemGroup) return;
   const uid=catId+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  const it={uid,catId,x,z,rot:rot||0};
+  if(wlasne){                                  // wymiary podane przez użytkownika
+    if(wlasne.w) it.w=wlasne.w;
+    if(wlasne.d) it.d=wlasne.d;
+    if(wlasne.h) it.h=wlasne.h;
+    if(wlasne.ro) it.recznyObrot=true;
+  }
+  const cat=katOf(it);
   const obj=makeProductMesh(cat); obj.userData.uid=uid; itemGroup.add(obj);
-  const y = cat.mount==='ceil' ? G.h-0.06 : (cat.mount==='wall' ? cat.wallY : 0);
-  const it={uid,catId,obj,x,z,y,rot:rot||0};
+  it.obj=obj;
+  it.y = cat.mount==='ceil' ? G.h-0.06 : (cat.mount==='wall' ? cat.wallY : 0);
   clampItem(it);
   if(collidesAt(it,it.x,it.z)){
     const spot=findFreeSpot(it);
