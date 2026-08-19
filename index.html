@@ -227,6 +227,28 @@
   .prow .pm{font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--mute); margin-top:3px;}
   .prow .px{color:var(--mute); font-size:15px; line-height:1;}
   .prow .px:hover{color:var(--bad);}
+  /* pasek podsumowania pod sceną 3D */
+  .scene-summary{display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:11px 14px; border-top:1px solid var(--line); background:var(--oak-soft);}
+  .ss-num{display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px;
+    padding:0 8px; border-radius:999px; background:var(--ink); color:#fff;
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;}
+  .ss-txt{font-size:13.5px; color:var(--slate);}
+  .ss-sum{font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--oak-deep);
+    margin-left:auto;}
+  .ss-btn{border:1.5px solid var(--ink); background:transparent; border-radius:999px;
+    padding:7px 14px; font-size:12.5px; font-family:inherit; cursor:pointer; color:var(--ink);}
+  .ss-btn:hover{background:var(--ink); color:#fff;}
+  @media (max-width:620px){ .ss-sum{margin-left:0;} .ss-btn{flex:1 1 auto;} }
+
+  /* lista wstawionych rzeczy jako karty, a nie kreski */
+  .prow{border:1px solid var(--line); border-radius:12px; padding:10px 11px; margin-bottom:8px;
+    background:var(--paper); align-items:center;}
+  .prow:hover{background:var(--oak-soft); border-color:var(--oak);}
+  .prow.on{background:var(--oak-soft); border-color:var(--oak);}
+  .prow .rowthumb{width:42px; height:42px; border-radius:8px;}
+  .prow .pname{font-size:13.5px; font-weight:600; color:var(--ink);}
+  .prow .pprice{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--oak-deep); margin-top:2px;}
   .rowthumb{width:31px; height:31px; object-fit:cover; flex-shrink:0; background:var(--line); border:1px solid var(--line);}
   .empty{color:var(--mute); font-size:12.5px; padding:20px 8px; text-align:center; border:1px dashed var(--line); line-height:1.5;}
   .sum{display:flex; justify-content:space-between; align-items:baseline; padding-top:11px; border-top:1.5px solid var(--ink);}
@@ -952,7 +974,15 @@
         </div>
         <div class="fields">
           <div class="field"><label>Wysokość m</label><input type="number" id="dimH" value="2.5" min="2" max="4" step="0.1"></div>
-          <div class="field" style="display:flex;align-items:flex-end;"><button class="btn-sm" onclick="applyDims()">Zastosuj</button></div>
+          <div class="field"></div>
+        </div>
+        <div class="slabel">Brama</div>
+        <div class="fields">
+          <div class="field"><label>Szerokość m</label><input type="number" id="bramaW" value="2.5" min="1.8" max="6" step="0.1"></div>
+          <div class="field"><label>Wysokość m</label><input type="number" id="bramaH" value="2.1" min="1.6" max="3.5" step="0.1"></div>
+        </div>
+        <div class="fields" style="margin-top:8px;">
+          <div class="field" style="grid-column:1 / -1;"><button class="btn-sm" style="width:100%;" onclick="applyDims()">Zastosuj wymiary</button></div>
         </div>
         <label class="toggle"><input type="checkbox" id="carToggle" checked onchange="buildCar();updateAnalysis();syncSceneToggles()"> <span id="carToggleLabel">Samochód</span></label>
         <label class="toggle"><input type="checkbox" id="manToggle" checked onchange="toggleMan();syncSceneToggles()"> Sylwetka 175 cm</label>
@@ -999,6 +1029,14 @@
           <button class="zreset" onclick="zoomReset()" title="Dopasuj widok" aria-label="Dopasuj widok">⤢</button>
         </div>
         <div class="hint" id="hint">Przeciągnij produkt, żeby go przesunąć · Przeciągnij tło, żeby obrócić widok · Kółko przybliża</div>
+        </div>
+        <!-- Podsumowanie tuż pod sceną: na telefonie lista wstawionych rzeczy jest daleko
+             pod spodem i użytkownicy jej nie znajdowali. -->
+        <div class="scene-summary" id="sceneSummary">
+          <span class="ss-num" id="ssCount">0</span>
+          <span class="ss-txt" id="ssTxt">nic jeszcze nie wstawiłeś</span>
+          <span class="ss-sum" id="ssTotal"></span>
+          <button class="ss-btn" onclick="skoczDoListy()">Zobacz listę</button>
         </div>
         <div class="scene-toggles">
           <span class="stl">Pokaż w garażu</span>
@@ -1451,6 +1489,9 @@ function buildCarUI(){
 }
 
 let G={w:3.2,d:6.0,h:2.5};
+/* Brama to jedyny element, który ma każdy garaż — jej wymiary decydują o tym,
+   czy auto w ogóle wjedzie, więc trzymamy je osobno i pytamy o nie użytkownika. */
+let BRAMA={w:2.5,h:2.1};
 let placed=[], selected=null;
 let scene,camera,renderer,raycaster,pointer,pmrem;
 let roomGroup,itemGroup,overlayGroup,carMesh,manMesh;
@@ -1724,7 +1765,7 @@ function buildRoom(){
     m.rotation.y=ry; m.position.set(px,0.045,pz); roomGroup.add(m);};
   pl(G.w,0,0,-G.d/2+0.011); pl(G.d,Math.PI/2,-G.w/2+0.011,0); pl(G.d,-Math.PI/2,G.w/2-0.011,0);
 
-  const dh=Math.min(2.1,G.h-0.15), dw=Math.min(2.5,G.w-0.2);
+  const dh=Math.min(BRAMA.h,G.h-0.15), dw=Math.min(BRAMA.w,G.w-0.2);
   const fm=new THREE.MeshStandardMaterial({color:0xC9C9C3,roughness:0.45,metalness:0.6});
   const top=new THREE.Mesh(roundedBox(dw+0.18,0.10,0.10,0.02),fm);
   top.position.set(0,dh,G.d/2-0.05); top.castShadow=true; roomGroup.add(top);
@@ -2613,6 +2654,16 @@ function analyse(){
   const res={leftGap:null,rightGap:null,frontGap:null,minPass:null,freeArea:0,usedArea:0,blocked:[]};
   let used=0; fps.forEach(f=>{used+=(f.x2-f.x1)*(f.z2-f.z1);});
   res.usedArea=used; res.freeArea=Math.max(0,G.w*G.d-used);
+  /* --- brama: czy auto się mieści i czy coś nie stoi w świetle wjazdu --- */
+  res.bramaBok=null; res.bramaGora=null; res.bramaZajeta=false;
+  if(car){
+    res.bramaBok=(BRAMA.w-CAR.w)/2*100;      // luz z każdej strony przy wjeździe
+    res.bramaGora=(BRAMA.h-CAR.h)*100;        // prześwit nad dachem
+  }
+  /* Strefa wjazdu: pas o szerokości bramy, ciągnący się metr w głąb od jej krawędzi.
+     Cokolwiek tam stoi, przeszkadza przy wjeżdżaniu. */
+  const bx1=-BRAMA.w/2, bx2=BRAMA.w/2, bz1=G.d/2-1.0, bz2=G.d/2;
+  fps.forEach(f=>{ if(f.x1<bx2 && f.x2>bx1 && f.z1<bz2 && f.z2>bz1) res.bramaZajeta=true; });
   if(car){
     let lo=-G.w/2, ro=G.w/2;
     fps.forEach(f=>{if(!overlapZ(f,car))return;
@@ -2660,6 +2711,11 @@ function updateAnalysis(){
     rows.push(['Z lewej (kierowca)',Math.round(a.leftGap)+' cm',badge(a.leftGap,DOOR_NEED)]);
     rows.push(['Z prawej',Math.round(a.rightGap)+' cm',badge(a.rightGap,PASS_MIN)]);
     rows.push(['Przed maską',Math.round(a.frontGap)+' cm',badge(a.frontGap,40)]);}
+  if(a.bramaBok!==null){
+    rows.push(['Brama: luz z boku',Math.round(a.bramaBok)+' cm z każdej strony',badge(a.bramaBok,15)]);
+    rows.push(['Brama: prześwit nad autem',Math.round(a.bramaGora)+' cm',badge(a.bramaGora,10)]);
+  }
+  if(a.bramaZajeta) rows.push(['Wjazd zastawiony','coś stoi w świetle bramy','bad']);
   rows.push(['Zajęta podłoga',a.usedArea.toFixed(1)+' m²','go']);
   rows.push(['Wolna podłoga',a.freeArea.toFixed(1)+' m² z '+(G.w*G.d).toFixed(1),badge(a.freeArea,2)]);
   document.getElementById('metrics').innerHTML=rows.map(([k,val,b])=>
@@ -2755,6 +2811,12 @@ function applyDims(){
   G.w=Math.max(2,Math.min(10,parseFloat(document.getElementById('dimW').value)||3.2));
   G.d=Math.max(2,Math.min(12,parseFloat(document.getElementById('dimD').value)||6));
   G.h=Math.max(2,Math.min(4, parseFloat(document.getElementById('dimH').value)||2.5));
+  /* Brama nie może być szersza od ściany ani wyższa od garażu — przycinamy wartość
+     i pokazujemy ją z powrotem w polu, żeby użytkownik widział, co zostało przyjęte. */
+  BRAMA.w=Math.max(1.8,Math.min(G.w-0.2, parseFloat(document.getElementById('bramaW').value)||2.5));
+  BRAMA.h=Math.max(1.6,Math.min(G.h-0.15, parseFloat(document.getElementById('bramaH').value)||2.1));
+  document.getElementById('bramaW').value=+BRAMA.w.toFixed(2);
+  document.getElementById('bramaH').value=+BRAMA.h.toFixed(2);
   buildRoom();
   const a=document.querySelector('.vbtn.on'); setView(a?a.dataset.view:'wejscie',a);
   renderList();
@@ -2763,20 +2825,44 @@ function renderList(){
   const list=document.getElementById('plist'), tot=document.getElementById('total');
   if(!placed.length){
     list.innerHTML='<div class="empty">Garaż jest pusty.<br>Kliknij produkt po lewej, żeby go wstawić.</div>';
-    tot.textContent='0 zł'; updateAnalysis(); syncCart(); autoSave(); return;}
+    tot.textContent='0 zł'; updateAnalysis(); syncCart(); autoSave(); odswiezPodsumowanie(); return;}
   list.innerHTML=''; let total=0;
   placed.forEach(p=>{
     const {w,d,cat}=dimsOf(p); total+=cat.price;
     const hex='#'+cat.color.toString(16).padStart(6,'0'), ph=photoOf(cat.id);
     const th=ph?`<img class="rowthumb" src="${ph}" alt="" loading="lazy" data-fallback="${hex}" onerror="photoFail(this)">`:'';
     const li=document.createElement('li'); li.className='prow'+(selected&&selected.uid===p.uid?' on':'');
-    li.innerHTML=`<div style="display:flex;gap:9px;align-items:flex-start;">${th}<div><div>${cat.name}</div>
-      <div class="pm">${Math.round(w*100)}×${Math.round(d*100)} cm · ${cat.price} zł</div></div></div>
-      <span class="px" onclick="removeByUid('${p.uid}',event)">×</span>`;
+    li.innerHTML=`<div style="display:flex;gap:11px;align-items:center;">${th}<div>
+      <div class="pname">${cat.name}</div>
+      <div class="pm">${Math.round(w*100)}×${Math.round(d*100)} cm</div>
+      <div class="pprice">${cat.price} zł</div></div></div>
+      <span class="px" onclick="removeByUid('${p.uid}',event)" title="Usuń z garażu">×</span>`;
     li.onclick=()=>select(p); list.appendChild(li);});
-  tot.textContent=total+' zł'; updateAnalysis(); syncCart(); autoSave(); nudgeCheck();
+  tot.textContent=total+' zł'; updateAnalysis(); syncCart(); autoSave(); nudgeCheck(); odswiezPodsumowanie();
   zdarzenie('pierwszy-element'); if(placed.length>=3) zdarzenie('trzy-elementy');
 }
+
+/* Pasek pod sceną — pokazuje, ile rzeczy stoi w garażu i za ile, bez przewijania. */
+function odmianaElem(n){ 
+  if(n===1) return 'element w garażu';
+  const d=n%10, s=n%100;
+  return (d>=2 && d<=4 && !(s>=12 && s<=14)) ? 'elementy w garażu' : 'elementów w garażu';
+}
+function odswiezPodsumowanie(){
+  const c=document.getElementById('ssCount'), t=document.getElementById('ssTxt'),
+        s=document.getElementById('ssTotal'), b=document.querySelector('.ss-btn');
+  if(!c) return;
+  const n=placed.length;
+  c.textContent=n;
+  t.textContent = n===0 ? 'nic jeszcze nie wstawiłeś' : odmianaElem(n);
+  s.textContent = n===0 ? '' : cartTotals().sub+' zł';
+  if(b) b.style.display = n===0 ? 'none' : '';
+}
+function skoczDoListy(){
+  const l=document.getElementById('plist'); if(!l) return;
+  l.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
 async function sendProject(){
   const em=document.getElementById('leadEmail'), cs=document.getElementById('leadConsent');
   const email=(em.value||'').trim();
@@ -2861,6 +2947,7 @@ function projectData(){
   const a=analyse();
   return {
     garaz:{w:+G.w.toFixed(2), d:+G.d.toFixed(2), h:+G.h.toFixed(2), podloga:floorFinish, sciany:wallFinish},
+    brama:{w:+BRAMA.w.toFixed(2), h:+BRAMA.h.toFixed(2)},
     auto:{typ:autoId, kolor:autoKolor, widoczne:!!(document.getElementById('carToggle')||{}).checked},
     elementy:placed.map(p=>({id:p.catId, x:+p.x.toFixed(2), z:+p.z.toFixed(2), rot:p.rot})),
     katalog:Object.assign({},shopCart),
@@ -2883,6 +2970,11 @@ function loadProjectCode(code){
   if(!o||!o.garaz||!Array.isArray(o.elementy)){ alert('Ten kod projektu jest nieczytelny.'); return false; }
   G.w=o.garaz.w; G.d=o.garaz.d; G.h=o.garaz.h;
   floorFinish=o.garaz.podloga||floorFinish; wallFinish=o.garaz.sciany||wallFinish;
+  if(o.brama){
+    BRAMA.w=o.brama.w; BRAMA.h=o.brama.h;
+    const bw=document.getElementById('bramaW'), bh=document.getElementById('bramaH');
+    if(bw) bw.value=BRAMA.w; if(bh) bh.value=BRAMA.h;
+  }
   if(o.auto){                                   // wybrane auto i lakier wracają razem z układem
     const a=AUTA.find(x=>x.id===o.auto.typ);
     if(a){ autoId=a.id; CAR.w=a.w; CAR.d=a.d; CAR.h=a.h; }
@@ -3075,6 +3167,7 @@ function projectSummary(){
   const d=projectData(), t=cartTotals(), L=[];
   L.push('GARAŻ: '+d.garaz.w+' × '+d.garaz.d+' m, wysokość '+d.garaz.h+' m');
   L.push('Wykończenie: podłoga '+d.garaz.podloga+', ściany '+d.garaz.sciany);
+  L.push('BRAMA: '+(d.brama?d.brama.w+' × '+d.brama.h+' m':'—'));
   L.push('AUTO: '+(d.auto&&d.auto.widoczne ? opisAuta() : 'nie uwzględniono w projekcie'));
   L.push('');
   L.push('WYPOSAŻENIE ('+placed.length+' elem.):');
