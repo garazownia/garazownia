@@ -998,6 +998,7 @@
 
         <div class="ctitle" style="margin-top:20px;">Wyposażenie <b>03</b></div>
         <div class="filters" id="filters"></div>
+        <p class="car-note" style="margin:6px 0 10px;">Grupa <b>Przeszkody</b> to okna, drzwi, rury czy gniazdka — wstawiasz je tak samo jak meble, ale nic nie kosztują i nie wchodzą do wyceny.</p>
         <div class="catalog" id="catalog"></div>
       </div>
 
@@ -1392,6 +1393,25 @@ const CATALOG=[
   {id:'wallbox', name:'Ładowarka EV (wallbox)',w:0.34,d:0.16,h:0.46,price:2290,color:0x1F3B52,finish:'painted',mount:'wall',wallY:1.20,group:'Elektryka'},
   {id:'lodowka', name:'Lodówka garażowa',    w:0.55,d:0.58,h:1.40,price:1299,color:0xC3C6C4,finish:'metal',  mount:'floor',group:'Elektryka'},
 ];
+
+/* ================= PRZESZKODY =================
+   To, czego nie kupujesz, ale co i tak zajmuje miejsce: okno, drzwi, rura od
+   rekuperacji, gniazdko. Prawdziwy garaż nie jest pustym pudełkiem i bez tych
+   elementów pomiary dotyczą cudzego wnętrza. Wchodzą do tego samego katalogu co
+   meble, więc kolidują i blokują ustawienie, ale nie mają ceny i nie liczą się
+   do wyceny ani do listy zakupów. */
+const PRZESZKODY=[
+  {id:'p_okno',    name:'Okno',                 w:1.20,d:0.08,h:1.00,price:0,color:0x7FA6C4,finish:'painted',mount:'wall',wallY:1.35,group:'Przeszkody',przeszkoda:true},
+  {id:'p_drzwi',   name:'Drzwi boczne',         w:0.90,d:0.10,h:2.00,price:0,color:0x8A7B62,finish:'painted',mount:'wall',wallY:1.00,group:'Przeszkody',przeszkoda:true},
+  {id:'p_rura',    name:'Rura / rekuperacja',   w:0.30,d:0.30,h:0.30,price:0,color:0x9AA2A7,finish:'metal',  mount:'wall',wallY:2.20,group:'Przeszkody',przeszkoda:true},
+  {id:'p_skrzynka',name:'Skrzynka elektryczna', w:0.35,d:0.14,h:0.45,price:0,color:0xB8B2A4,finish:'painted',mount:'wall',wallY:1.55,group:'Przeszkody',przeszkoda:true},
+  {id:'p_gniazdko',name:'Gniazdko / włącznik',  w:0.16,d:0.05,h:0.14,price:0,color:0xF0EBE2,finish:'painted',mount:'wall',wallY:0.35,group:'Przeszkody',przeszkoda:true},
+  {id:'p_kran',    name:'Kran / zawór',         w:0.16,d:0.16,h:0.30,price:0,color:0xC9C9C3,finish:'metal',  mount:'wall',wallY:0.95,group:'Przeszkody',przeszkoda:true},
+  {id:'p_schodek', name:'Schodek / podest',     w:1.00,d:0.35,h:0.18,price:0,color:0xA8A296,finish:'painted',mount:'floor',group:'Przeszkody',przeszkoda:true},
+  {id:'p_slup',    name:'Słup / występ ściany', w:0.30,d:0.30,h:2.40,price:0,color:0xBDB6A8,finish:'painted',mount:'floor',group:'Przeszkody',przeszkoda:true},
+];
+CATALOG.push(...PRZESZKODY);
+const jestPrzeszkoda=(cat)=>!!(cat && cat.przeszkoda);
 
 const FLOORS=[{id:'beton',base:'#B9BCBC'},{id:'plytki',base:'#8E9293'},{id:'szach',base:'#3B3F41'},{id:'zywica',base:'#4B5254'}];
 const WALLS =[{id:'tynk',base:'#E8E7E2'},{id:'beton',base:'#CFD1CF'},{id:'cegla',base:'#A8674C'}];
@@ -1966,6 +1986,23 @@ function makeProductMesh(cat){
   const rb=(w,h,d,r,m)=>new THREE.Mesh(roundedBox(w,h,d,r||0.012),m||body);
   const cyl=(rt,rb2,h,seg,m)=>new THREE.Mesh(new THREE.CylinderGeometry(rt,rb2,h,seg||16),m||body);
   const id=cat.id;
+  /* Przeszkody rysujemy inaczej niż meble: półprzezroczysta bryła z wyraźnym obrysem.
+     Ma być widać, że to element garażu, a nie coś, co się kupuje. */
+  if(cat.przeszkoda){
+    const hex=cat.color;
+    const mat=new THREE.MeshStandardMaterial({color:hex,roughness:0.6,metalness:0.1,
+      transparent:true,opacity:0.55});
+    const bryla=new THREE.Mesh(roundedBox(cat.w,cat.h,cat.d,0.02),mat);
+    /* Wszystkie meble w tym planerze rosną od punktu zaczepienia w górę — podłogowe od zera,
+       ścienne od wysokości montażu. Przeszkody muszą trzymać tę samą zasadę. */
+    const oY = cat.h/2;
+    bryla.position.y=oY; g.add(bryla);
+    const kra=new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(cat.w,cat.h,cat.d)),
+      new THREE.LineBasicMaterial({color:0x1C1F22,transparent:true,opacity:0.55}));
+    kra.position.y=oY; g.add(kra);
+    return g;
+  }
 
   // stopka pod meble stojące — drobiazg, ale bez niej wszystko "przykleja się" do podłogi
   const feet=(w,d,h,m)=>{
@@ -2662,6 +2699,25 @@ function analyse(){
   }
   /* Strefa wjazdu: pas o szerokości bramy, ciągnący się metr w głąb od jej krawędzi.
      Cokolwiek tam stoi, przeszkadza przy wjeżdżaniu. */
+  /* Szafka powieszona na gniazdku albo na oknie to błąd, którego nie widać w rzucie
+     z góry — sprawdzamy nakładanie się w poziomie i w pionie jednocześnie. */
+  res.zaslonieteNazwy=[];
+  const scienne=placed.filter(p=>dimsOf(p).cat.mount==='wall');
+  const pion=(p)=>{const {cat}=dimsOf(p); const y=(p.y!==undefined?p.y:cat.wallY)||0;
+                   return {y1:y, y2:y+cat.h};};   // bryły rosną w górę od punktu montażu
+  const plan=(p)=>{const {w,d}=dimsOf(p); return {x1:p.x-w/2,x2:p.x+w/2,z1:p.z-d/2,z2:p.z+d/2};};
+  scienne.filter(p=>jestPrzeszkoda(dimsOf(p).cat)).forEach(prz=>{
+    const pp=plan(prz), py=pion(prz);
+    scienne.filter(p=>!jestPrzeszkoda(dimsOf(p).cat)).forEach(mebel=>{
+      const mp=plan(mebel), my=pion(mebel);
+      const wPoziomie = mp.x1<pp.x2 && mp.x2>pp.x1 && mp.z1<pp.z2 && mp.z2>pp.z1;
+      const wPionie   = my.y1<py.y2 && my.y2>py.y1;
+      if(wPoziomie && wPionie){
+        const n=dimsOf(prz).cat.name;
+        if(res.zaslonieteNazwy.indexOf(n)===-1) res.zaslonieteNazwy.push(n);
+      }
+    });
+  });
   const bx1=-BRAMA.w/2, bx2=BRAMA.w/2, bz1=G.d/2-1.0, bz2=G.d/2;
   fps.forEach(f=>{ if(f.x1<bx2 && f.x2>bx1 && f.z1<bz2 && f.z2>bz1) res.bramaZajeta=true; });
   if(car){
@@ -2716,6 +2772,8 @@ function updateAnalysis(){
     rows.push(['Brama: prześwit nad autem',Math.round(a.bramaGora)+' cm',badge(a.bramaGora,10)]);
   }
   if(a.bramaZajeta) rows.push(['Wjazd zastawiony','coś stoi w świetle bramy','bad']);
+  if(a.zaslonieteNazwy && a.zaslonieteNazwy.length)
+    rows.push(['Zasłonięte',a.zaslonieteNazwy.join(', '),'bad']);
   rows.push(['Zajęta podłoga',a.usedArea.toFixed(1)+' m²','go']);
   rows.push(['Wolna podłoga',a.freeArea.toFixed(1)+' m² z '+(G.w*G.d).toFixed(1),badge(a.freeArea,2)]);
   document.getElementById('metrics').innerHTML=rows.map(([k,val,b])=>
@@ -2828,14 +2886,14 @@ function renderList(){
     tot.textContent='0 zł'; updateAnalysis(); syncCart(); autoSave(); odswiezPodsumowanie(); return;}
   list.innerHTML=''; let total=0;
   placed.forEach(p=>{
-    const {w,d,cat}=dimsOf(p); total+=cat.price;
+    const {w,d,cat}=dimsOf(p); if(!jestPrzeszkoda(cat)) total+=cat.price;
     const hex='#'+cat.color.toString(16).padStart(6,'0'), ph=photoOf(cat.id);
     const th=ph?`<img class="rowthumb" src="${ph}" alt="" loading="lazy" data-fallback="${hex}" onerror="photoFail(this)">`:'';
     const li=document.createElement('li'); li.className='prow'+(selected&&selected.uid===p.uid?' on':'');
     li.innerHTML=`<div style="display:flex;gap:11px;align-items:center;">${th}<div>
       <div class="pname">${cat.name}</div>
       <div class="pm">${Math.round(w*100)}×${Math.round(d*100)} cm</div>
-      <div class="pprice">${cat.price} zł</div></div></div>
+      <div class="pprice">${jestPrzeszkoda(cat)?'element garażu':cat.price+' zł'}</div></div></div>
       <span class="px" onclick="removeByUid('${p.uid}',event)" title="Usuń z garażu">×</span>`;
     li.onclick=()=>select(p); list.appendChild(li);});
   tot.textContent=total+' zł'; updateAnalysis(); syncCart(); autoSave(); nudgeCheck(); odswiezPodsumowanie();
@@ -3184,6 +3242,15 @@ function projectSummary(){
     extra.forEach(id=>{ const c=CATALOG.find(x=>x.id===id); if(c) L.push('  - '+c.name+' x '+shopCart[id]+'  ('+c.price+' zł/szt.)'); });
   }
   L.push('');
+  const przeszkody=placed.filter(p=>jestPrzeszkoda(dimsOf(p).cat));
+  if(przeszkody.length){
+    L.push('');
+    L.push('PRZESZKODY W GARAŻU ('+przeszkody.length+'):');
+    const licz={};
+    przeszkody.forEach(p=>{const n=dimsOf(p).cat.name; licz[n]=(licz[n]||0)+1;});
+    Object.keys(licz).forEach(n=>L.push('  - '+n+' x '+licz[n]));
+  }
+
   L.push('POMIARY:');
   L.push('  Najwęższe przejście: '+(d.pomiary.najwezsze_cm===null?'—':d.pomiary.najwezsze_cm+' cm'));
   if(d.pomiary.lewa_cm!==null) L.push('  Z lewej (kierowca): '+d.pomiary.lewa_cm+' cm | Z prawej: '+d.pomiary.prawa_cm+' cm');
@@ -3572,7 +3639,7 @@ function plannerCounts(){
 function combinedCart(){
   const pc=plannerCounts(), out=[];
   new Set([...Object.keys(pc),...Object.keys(shopCart)]).forEach(id=>{
-    const cat=CATALOG.find(c=>c.id===id); if(!cat) return;
+    const cat=CATALOG.find(c=>c.id===id); if(!cat || jestPrzeszkoda(cat)) return;   // przeszkody nie są zakupami
     const fromPlan=pc[id]||0, fromShop=shopCart[id]||0, qty=fromPlan+fromShop;
     if(qty>0) out.push({cat,qty,fromPlan,fromShop});
   });
@@ -3606,7 +3673,7 @@ function stars(r){
 let shopFilter='all';
 function buildShopFilters(){
   const host=document.getElementById('shopFilters'); host.innerHTML='';
-  ['all',...new Set(CATALOG.map(c=>c.group))].forEach(g=>{
+  ['all',...new Set(CATALOG.filter(c=>!jestPrzeszkoda(c)).map(c=>c.group))].forEach(g=>{
     const b=document.createElement('button');
     b.className='fbtn'+(shopFilter===g?' on':'');
     b.textContent = g==='all'?'Wszystko':g;
@@ -3615,7 +3682,8 @@ function buildShopFilters(){
 }
 function renderShop(){
   const grid=document.getElementById('shopGrid'); if(!grid) return;
-  let list = shopFilter==='all'?CATALOG.slice():CATALOG.filter(c=>c.group===shopFilter);
+  const sklepowe=CATALOG.filter(c=>!jestPrzeszkoda(c));
+  let list = shopFilter==='all'?sklepowe.slice():sklepowe.filter(c=>c.group===shopFilter);
   const sortEl=document.getElementById('shopSort');
   const s=sortEl?sortEl.value:'default';
   if(s==='price-asc') list.sort((a,b)=>a.price-b.price);
@@ -3623,7 +3691,7 @@ function renderShop(){
   else if(s==='rating') list.sort((a,b)=>(b.rating||0)-(a.rating||0));
   else if(s==='name') list.sort((a,b)=>a.name.localeCompare(b.name,'pl'));
   const cnt=document.getElementById('shopCount');
-  if(cnt) cnt.textContent='Wyświetlanie '+list.length+' z '+CATALOG.length+' produktów';
+  if(cnt) cnt.textContent='Wyświetlanie '+list.length+' z '+sklepowe.length+' produktów';
   const pc=plannerCounts();
   grid.innerHTML='';
   list.forEach((cat,i)=>{
