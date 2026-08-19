@@ -701,10 +701,25 @@
      po kliknięciu produktu trzeba było przewijać w górę, żeby zobaczyć efekt.
      Teraz scena ma ograniczoną wysokość i zostaje przyklejona przy przewijaniu. */
   .stage-col{align-self:stretch;}   /* kolumna musi być wysoka, inaczej przyklejona scena nie ma po czym jechać */
-  .stage-sticky{position:sticky; top:14px; z-index:5;
+
     background:radial-gradient(120% 85% at 50% 8%, #3D464B 0%, #262D31 44%, #14181B 100%);}
   .stage-wrap{flex:none;}
   #stage{height:min(62vh,600px); min-height:0; flex:none;}
+  /* --- planer jako jeden panel na wysokość ekranu (od 1181 px w górę) ---
+     Zamiast rozciągać stronę na trzy tysiące pikseli, każda kolumna przewija się
+     u siebie. Scena, katalog i pomiary są widoczne naraz, bez przewijania strony
+     i bez pustego czarnego pola pod garażem. */
+  @media (min-width:1181px){
+    .shell{height:min(88vh,900px);}
+    .col{overflow-y:auto; overscroll-behavior:contain;}
+    .catalog{max-height:none; overflow:visible; padding-right:0;}
+    .stage-col{align-self:stretch; background:var(--paper); display:flex; flex-direction:column;}
+    .stage-sticky{position:static; display:flex; flex-direction:column; flex:1 1 auto; min-height:0;}
+    .stage-wrap{flex:1 1 auto; min-height:0;}
+    #stage{height:auto; flex:1 1 auto; min-height:0;}
+  }
+  .stage-sticky{position:sticky; top:14px; z-index:5;
+
   @media (max-width:1180px){
     /* na telefonie scena przykleja się do górnej krawędzi, katalog przewija się pod nią */
     .stage-sticky{top:0;}
