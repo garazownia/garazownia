@@ -1399,7 +1399,7 @@
     <div class="doc-date">Obowiązuje od 17 sierpnia 2026</div>
 
     <h4>1. Kto przetwarza Twoje dane</h4>
-    <p>Administratorem danych osobowych podanych w tym serwisie jest <strong>Patryk Szatkowski</strong>,
+    <p>Administratorem danych osobowych podanych w tym serwisie jest <strong id="adminDanych">Patryk Szatkowski</strong>,
       działający jako osoba fizyczna. Kontakt we wszystkich sprawach dotyczących danych osobowych,
       w tym w sprawie żądań opisanych w punkcie 6:
       <a href="mailto:patryk@garazownia.com">patryk@garazownia.com</a>.</p>
@@ -1499,6 +1499,122 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDoc(); });
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 
+/* ==================== KONFIGURACJA WDROŻENIA ====================
+   To jest jedyne miejsce, które zmieniasz, stawiając konfigurator dla nowej firmy.
+   Reszta pliku czyta wartości stąd — nie trzeba jej dotykać.
+
+   KOLEJNOŚĆ PRZY NOWYM KLIENCIE
+   1. Wypełnij pola poniżej: nazwa, znak, mail, administrator danych.
+   2. Wklej adres skryptu odbiorczego (Apps Script → Wdróż → NOWA WERSJA → /exec).
+      Skrypt i arkusz zakładamy na koncie Google KLIENTA, nie na naszym —
+      wtedy dane jego klientów zostają u niego.
+   3. Podmień kolory na firmowe (trzy wartości niżej).
+   4. Wpisz modele garaży klienta w `modele` — pojawią się jako przyciski
+      nad polami wymiarów. Pusta lista = przyciski się nie pokazują.
+   5. Załóż licznik na goatcounter.com i wklej adres, albo zostaw puste.
+
+   CZEGO TEN BLOK NIE ZMIENIA (trzeba poprawić ręcznie w <head> na górze pliku):
+   tytuł strony, opis, adres kanoniczny i obrazek podglądu Open Graph —
+   to musi być w kodzie na sztywno, żeby zobaczyły to wyszukiwarki i Facebook. */
+const FIRMA = {
+  nazwa:     'Garażownia',
+  podtytul:  'Wyposażenie garażu',
+  znak:      'G',                                   // litera w kwadraciku obok nazwy
+  mail:      'patryk@garazownia.com',               // tu lecą zgłoszenia i tym adresem podpisana jest strona
+  administrator: 'Patryk Szatkowski',               // administrator danych w polityce prywatności
+
+  // Adres aplikacji internetowej Apps Script (/exec). Puste = formularz nie wysyła.
+  skryptOdbiorczy: 'https://script.google.com/macros/s/AKfycbwybxaVVl2AqU86jLx83QXwUTcuzyjMbVV6cqa4U9ZEtNPmRyIPYDf9kvkEtBEj18PG/exec',
+
+  // Licznik odwiedzin GoatCounter (bez ciasteczek). Puste = brak pomiaru.
+  licznik: 'https://garazownia.goatcounter.com/count',
+
+  // Kolory marki. Zmiana tych trzech wystarcza, żeby narzędzie wyglądało jak część strony klienta.
+  kolory: {
+    atrament: '#1C1F22',   // teksty i ciemne tła
+    akcent:   '#C18A3A',   // przyciski, zaznaczenia, liczby
+    papier:   '#FCFAF6'    // tło strony
+  },
+
+  /* Modele garaży klienta. Każdy wpis to jeden przycisk nad polami wymiarów —
+     klient klika swój model zamiast wpisywać liczby.
+     Wymiary WEWNĘTRZNE w metrach; brama opcjonalnie.
+     Przykład dla producenta blaszaków:
+       {nazwa:'3 × 5', w:3.0, d:5.0, h:2.4, bramaW:2.5, bramaH:2.1},
+       {nazwa:'3 × 6', w:3.0, d:6.0, h:2.4, bramaW:2.5, bramaH:2.1},
+       {nazwa:'4 × 6 dwustanowiskowy', w:4.0, d:6.0, h:2.6, bramaW:3.0, bramaH:2.3}  */
+  modele: []
+};
+
+/* Przepisanie konfiguracji na stronę. Wołane raz, przy starcie. */
+function zastosujKonfiguracje(){
+  document.querySelectorAll('.brand .bn').forEach(e=>e.textContent=FIRMA.nazwa);
+  document.querySelectorAll('.brand .bs').forEach(e=>e.textContent=FIRMA.podtytul);
+  document.querySelectorAll('.brand .glyph').forEach(e=>e.textContent=FIRMA.znak);
+
+  document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{
+    a.href='mailto:'+FIRMA.mail;
+    if(a.textContent.indexOf('@')>-1) a.textContent=FIRMA.mail;
+  });
+  document.querySelectorAll('.foot-addr').forEach(e=>{
+    if(e.textContent.indexOf('@')>-1) e.textContent=FIRMA.mail;
+  });
+  const adm=document.getElementById('adminDanych');
+  if(adm) adm.textContent=FIRMA.administrator;
+
+  if(FIRMA.kolory){
+    const r=document.documentElement.style;
+    if(FIRMA.kolory.atrament) r.setProperty('--ink',   FIRMA.kolory.atrament);
+    if(FIRMA.kolory.akcent)   r.setProperty('--oak',   FIRMA.kolory.akcent);
+    if(FIRMA.kolory.papier)   r.setProperty('--paper', FIRMA.kolory.papier);
+  }
+
+  zbudujModele();
+
+  /* Licznik doklejamy z konfiguracji, żeby nie trzeba go było szukać w kodzie. */
+  if(FIRMA.licznik && !document.querySelector('script[data-goatcounter]')){
+    const s=document.createElement('script');
+    s.setAttribute('data-goatcounter', FIRMA.licznik);
+    s.async=true; s.src='//gc.zgo.at/count.js';
+    document.body.appendChild(s);
+  }
+}
+
+/* Przyciski z modelami klienta nad polami wymiarów. Bez modeli nic się nie pokazuje,
+   więc strona bez konfiguracji wygląda dokładnie tak, jak wyglądała. */
+function zbudujModele(){
+  if(!FIRMA.modele || !FIRMA.modele.length) return;
+  const pole=document.getElementById('dimW');
+  if(!pole || document.getElementById('modeleChips')) return;
+  const blok=pole.closest('.fields');
+  if(!blok) return;
+
+  const etykieta=document.createElement('div');
+  etykieta.className='slabel'; etykieta.textContent='Wybierz swój garaż';
+  const host=document.createElement('div');
+  host.className='carchips'; host.id='modeleChips';
+
+  FIRMA.modele.forEach((m,i)=>{
+    const b=document.createElement('button');
+    b.className='carchip'+(i===0?' on':'');
+    b.innerHTML='<b>'+m.nazwa+'</b><span>'+Math.round(m.w*100)+' × '+Math.round(m.d*100)+
+                (m.h?' × '+Math.round(m.h*100):'')+' cm</span>';
+    b.onclick=()=>{
+      document.querySelectorAll('#modeleChips .carchip').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      document.getElementById('dimW').value=m.w;
+      document.getElementById('dimD').value=m.d;
+      if(m.h) document.getElementById('dimH').value=m.h;
+      if(m.bramaW) document.getElementById('bramaW').value=m.bramaW;
+      if(m.bramaH) document.getElementById('bramaH').value=m.bramaH;
+      applyDims();
+    };
+    host.appendChild(b);
+  });
+  blok.parentNode.insertBefore(etykieta, blok);
+  blok.parentNode.insertBefore(host, blok);
+}
+
 /* ================= ODBIÓR PROJEKTÓW =================
    Wklej adres formularza i zgłoszenia zaczną przychodzić na Twojego maila.
    Formspree: formspree.io -> nowy formularz -> skopiuj 'https://formspree.io/f/xxxxxxxx' do endpoint
@@ -1508,7 +1624,7 @@ const ODBIOR = {
   // --- Wariant A: Google Apps Script (zalecany przy Google Workspace) ---
   // Wdróż skrypt jako aplikację internetową i wklej tu jej adres /exec.
   // Zgłoszenia trafią do Twojego Arkusza i na maila.
-  googleScript: 'https://script.google.com/macros/s/AKfycbwybxaVVl2AqU86jLx83QXwUTcuzyjMbVV6cqa4U9ZEtNPmRyIPYDf9kvkEtBEj18PG/exec',
+  googleScript: FIRMA.skryptOdbiorczy,
 
   // --- Wariant B: Formularz Google ---
   // Adres kończący się na /formResponse + identyfikatory pól entry.xxxxx
@@ -1518,7 +1634,7 @@ const ODBIOR = {
   endpoint: '',                 // np. 'https://formspree.io/f/abcdwxyz'
   accessKey: '',                // klucz Web3Forms
 
-  mailDo: 'patryk@garazownia.com'
+  mailDo: FIRMA.mail
 };
 
 const PHOTOS={};   // id produktu -> adres zdjęcia od dostawcy; puste = kolorowy kafelek
@@ -4061,6 +4177,7 @@ function animate(){
   renderer.render(scene,camera);
 }
 // Interfejs budujemy zawsze — nawet gdyby scena 3D nie wstała.
+zastosujKonfiguracje();
 buildFinishUI(); buildCarUI(); buildFilters(); buildCatalogUI(); buildPresets(); buildShopFilters(); renderShop(); renderList();
 buildFaq(); initReveal(); initHeroSim(); syncSceneToggles();
 
@@ -4382,10 +4499,9 @@ let mqTimer=null;
 window.addEventListener('resize',()=>{clearTimeout(mqTimer); mqTimer=setTimeout(odswiezTryb,150);});
 </script>
 
-<!-- Licznik odwiedzin GoatCounter: bez ciasteczek, bez danych osobowych.
-     Opisany w polityce prywatnosci, pkt 4 i 8. -->
-<script data-goatcounter="https://garazownia.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+<!-- Licznik odwiedzin GoatCounter (bez ciasteczek, bez danych osobowych; polityka
+     prywatności, pkt 4 i 8) doklejamy z bloku KONFIGURACJA WDROŻENIA — adres siedzi
+     w FIRMA.licznik, żeby przy nowym kliencie nie trzeba było go szukać w kodzie. -->
 
 </body>
 </html>
