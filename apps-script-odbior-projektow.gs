@@ -144,7 +144,7 @@ function arkuszRuchu() {
   let ark = plik.getSheetByName(NAZWA_RUCHU);
   if (!ark) {
     ark = plik.insertSheet(NAZWA_RUCHU);
-    ark.appendRow(['Data', 'Rodzaj', 'Kampania', 'Skąd', 'Urządzenie', 'Ekran']);
+    ark.appendRow(['Data', 'Rodzaj', 'Kampania', 'Skad', 'Urzadzenie', 'Ekran']);
     ark.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#1C1F22').setFontColor('#FFFFFF');
     ark.setFrozenRows(1);
     ark.setColumnWidth(1, 150);
@@ -155,7 +155,7 @@ function arkuszRuchu() {
 
 function zapiszRuch(d) {
   const ark = arkuszRuchu();
-  const rodzaj = d.akcja === 'wejscie' ? 'wejście' : ('etap: ' + String(d.nazwa || '').slice(0, 60));
+  const rodzaj = d.akcja === 'wejscie' ? 'wejscie' : ('etap: ' + String(d.nazwa || '').slice(0, 60));
   ark.appendRow([
     new Date(),
     rodzaj,
