@@ -898,6 +898,12 @@
     border:1.5px solid var(--ink); background:transparent; color:var(--ink);
     font-family:inherit; font-size:13.5px; font-weight:600;}
   .krok4-akcje button:active{background:var(--ink); color:var(--paper);}
+  /* „Popraw ręcznie” powiększa scenę tylko na telefonie — na desktopie nie ma
+     czego powiększać, więc przycisk tam nie występuje. */
+  #btnRecznie{display:none;}
+  .krok4-akcje{flex-wrap:wrap;}
+  .krok4-akcje #btnWyczysc{border-color:var(--line); color:var(--mute);}
+  .zoomctl .zrot{font-size:16px;}
 
   @media (max-width:900px){
     body.prowadzony .kroki{display:flex; gap:6px; padding:9px 10px; overflow-x:auto;
@@ -911,6 +917,8 @@
       background:rgba(255,255,255,.12); color:#C9D1D4;}
     body.prowadzony .kchip.on{background:var(--oak); border-color:var(--oak); color:#231705; font-weight:600;}
     body.prowadzony .kchip.on .kn{background:rgba(0,0,0,.22); color:#231705;}
+    body.prowadzony .kchip.kczysc{margin-left:auto; color:#C98B7A; border-color:rgba(201,139,122,.4);}
+    body.prowadzony #btnRecznie{display:block;}
 
     /* jeden krok naraz */
     /* Chowamy kroki nieaktywne zamiast wymuszać display na aktywnych — inaczej
@@ -929,9 +937,10 @@
     body.prowadzony .views{gap:4px;}
     body.prowadzony .hint{display:none;}
 
-    /* gesty: domyślnie palec przewija stronę, dopiero „Popraw ręcznie” oddaje go scenie */
-    body.prowadzony #stage{touch-action:pan-y;}
-    body.prowadzony .shell.recznie #stage{touch-action:none; height:min(62vh,460px);}
+    /* Gesty należą do sceny: przeciągnięcie tła obraca garaż. Stronę przewija się
+       paskiem pod sceną — scena zajmuje tylko górne 38% ekranu. */
+    body.prowadzony #stage{touch-action:none;}
+    body.prowadzony .shell.recznie #stage{height:min(62vh,460px);}
     body.prowadzony .shell.recznie .kroki{display:none;}
 
     /* katalog jako siatka kafelków — 3600 px listy nikt nie przewinie */
@@ -1176,6 +1185,10 @@
         <div class="zoomctl">
           <button onclick="zoomBy(-1)" title="Przybliż" aria-label="Przybliż">+</button>
           <button onclick="zoomBy(1)" title="Oddal" aria-label="Oddal">−</button>
+          <!-- Obrót przyciskami: na telefonie nie każdy wpadnie na to, że garaż
+               obraca się przeciągnięciem tła. -->
+          <button class="zrot" onclick="obrocScene(-1)" title="Obróć w lewo" aria-label="Obróć w lewo">↺</button>
+          <button class="zrot" onclick="obrocScene(1)" title="Obróć w prawo" aria-label="Obróć w prawo">↻</button>
           <button class="zreset" onclick="zoomReset()" title="Dopasuj widok" aria-label="Dopasuj widok">⤢</button>
         </div>
         <div class="hint" id="hint">Przeciągnij produkt, żeby go przesunąć · Przeciągnij tło, żeby obrócić widok · Kółko przybliża</div>
@@ -1949,6 +1962,9 @@ function buildRoom(){
     roomGroup.add(p); cutaway.walls.push({mesh:p,pos:new THREE.Vector3(0,G.h-0.06,G.d/2),n:new THREE.Vector3(0,-1,0),ceilingBound:true});}
 
   buildCar(); clampAll(); buildZoneMesh(); buildStudio();
+  /* Nowy sufit i nowe ściany rodzą się widoczne. Bez tego po zmianie podłogi
+     albo wymiarów widok z góry pokazywał sam dach. */
+  applyCutaway();
 }
 
 /* przezroczysty dach i bliższe ściany — bez tego widok z góry pokazuje sam sufit */
@@ -4170,6 +4186,12 @@ function zbudujPasekKrokow(){
     b.onclick=()=>ustawKrok(k.n);
     bar.appendChild(b);
   });
+  /* Ostatni „kafelek” nie jest krokiem, tylko wyjściem awaryjnym: kasuje wybory
+     i wraca na start. Ludzie testują planer po kilka razy. */
+  const czysc=document.createElement('button');
+  czysc.className='kchip kczysc'; czysc.textContent='Od nowa';
+  czysc.onclick=()=>wyczyscPlaner();
+  bar.appendChild(czysc);
   kol.appendChild(bar);
 
   const nav=document.createElement('div'); nav.className='krok-nav'; nav.id='krokNav';
@@ -4253,8 +4275,8 @@ function trybReczny(wl){
   shell.classList.toggle('recznie', wl);
   const b=document.getElementById('btnRecznie');
   if(b) b.textContent = wl ? 'Gotowe' : 'Popraw ręcznie';
-  obrotZablokowany = !wl && MOBILE_MQ.matches;
-  if(wl) komunikat('Przeciągaj palcem po scenie. Strona nie przewija się, dopóki nie klikniesz „Gotowe”.');
+  
+  if(wl) komunikat('Scena powiększona — przeciągnij rzecz palcem, żeby poprawić jej miejsce.');
   const st=document.querySelector('.stage-col');
   if(st) st.scrollIntoView({block:'start',behavior:'smooth'});
 }
@@ -4275,7 +4297,7 @@ function pilnujPaskaNawigacji(){
 function wlaczProwadzony(){
   document.body.classList.add('prowadzony');
   przypiszKroki(); zbudujPasekKrokow(); pilnujPaskaNawigacji();
-  obrotZablokowany=true;
+  obrotZablokowany=false;   /* obracanie garażu zostaje — użytkownicy tego chcą */
   const gora=document.querySelector('.vbtn[data-view="gora"]');
   if(gora) setView('gora',gora);           /* rzut z góry czyta się jak plan mieszkania */
   ustawKrok(krokAktywny);
@@ -4300,6 +4322,34 @@ function odswiezTryb(){
   chce ? wlaczProwadzony() : wylaczProwadzony();
 }
 
+
+/* ---- obrót przyciskami ----
+   W widoku z góry samo obracanie wokół pionu niewiele daje, więc pierwszy
+   obrót opuszcza też kamerę do wysokości oka — wtedy widać ściany i głębokość. */
+function obrocScene(kier){
+  if(mode==='walk'){ walk.yaw -= kier*0.5; updateCam(); return; }
+  if(orbit.phi < 0.35) orbit.phi = 1.15;
+  orbit.theta -= kier*Math.PI/8;
+  updateCam();
+  document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('on'));
+}
+
+/* ---- czyszczenie planera ----
+   Kasujemy wszystko, co użytkownik wybrał, łącznie z zapisem z poprzedniej
+   wizyty, i wracamy do pierwszego kroku. Pytamy, bo tego się nie cofnie.
+   Samo kasowanie robi zacznijOdNowa() — ta sama funkcja, której używa pasek
+   „przywróciliśmy Twój układ”. */
+function wyczyscPlaner(){
+  if(placed.length && !confirm('Usunąć całe wyposażenie i zacząć od nowa?')) return;
+  zacznijOdNowa();
+  recznieUstawiane=false;
+  if(MOBILE_MQ.matches){
+    if(document.querySelector('.shell').classList.contains('recznie')) trybReczny(false);
+    ustawKrok(1);
+  }
+  zoomReset();
+  komunikat('Wyczyszczone. Garaż jest pusty — zacznij od wymiarów.');
+}
 /* przyciski dokładane do kroku 4 */
 function dolozPrzyciskiKroku4(){
   const kolumny=[...document.querySelectorAll('.shell > .col')];
@@ -4307,9 +4357,11 @@ function dolozPrzyciskiKroku4(){
   if(!cel || document.getElementById('btnRecznie')) return;
   const box=document.createElement('div'); box.className='krok4-akcje';
   box.innerHTML='<button id="btnRozstaw">Rozstaw od nowa</button>'+
-                '<button id="btnRecznie">Popraw ręcznie</button>';
+                '<button id="btnRecznie">Popraw ręcznie</button>'+
+                '<button id="btnWyczysc">Zacznij od nowa</button>';
   cel.parentNode.insertBefore(box,cel.nextSibling);
   document.getElementById('btnRozstaw').onclick=()=>rozstawOdNowa();
+  document.getElementById('btnWyczysc').onclick=()=>wyczyscPlaner();
   document.getElementById('btnRecznie').onclick=()=>
     trybReczny(!document.querySelector('.shell').classList.contains('recznie'));
 }
