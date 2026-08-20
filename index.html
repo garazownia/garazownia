@@ -1485,6 +1485,13 @@
       własnych wymiarów, zapisanie kodu i wysłanie projektu. Każdy etap liczy się raz na wizytę.
       Służy to wyłącznie temu, żeby zobaczyć, w którym miejscu narzędzie sprawia kłopot
       i co poprawić.</p>
+    <p>Niezależnie od GoatCountera prowadzimy <strong>własny licznik wejść</strong>, zapisywany
+      w naszym Arkuszu Google. Trafia do niego data wejścia, nazwa kampanii z linku
+      (na przykład oznaczenie grupy, z której przyszedłeś), domena strony odsyłającej,
+      rodzaj urządzenia i rozdzielczość okna. Nie zapisujemy ciasteczek, nie przechowujemy
+      adresu IP i nie łączymy tych wpisów z żadnymi danymi kontaktowymi — nie da się z nich
+      wskazać osoby. Powstał, bo zewnętrzny licznik potrafi przestać działać akurat wtedy,
+      gdy sprawdzamy, czy ktokolwiek korzysta z planera.</p>
     <p>Jeśli mimo to wolisz nie być liczony, wystarczy dowolna blokada skryptów albo tryb
       „Do Not Track" w przeglądarce — GoatCounter go respektuje.</p>
   </div>
@@ -3504,6 +3511,41 @@ function promptLoadCode(){
    Chodzi o jedno: zobaczyć, na którym kroku ludzie odpadają. Każde zdarzenie liczy
    się raz na wizytę, żeby jeden zapalony użytkownik nie zawyżył statystyki. */
 const ZDARZENIA_ZLICZONE={};
+
+/* ==================== WŁASNY LICZNIK WEJŚĆ ====================
+   GoatCounter potrafi paść (503 na całej usłudze, sprawdzone 20.08.2026),
+   a wtedy tracimy dane akurat wtedy, gdy są potrzebne — po wrzuceniu posta.
+   Dlatego wejścia i etapy zapisujemy dodatkowo w swoim Arkuszu, przez ten sam
+   Apps Script, który odbiera projekty. Bez ciasteczek, bez adresu IP:
+   data, kampania z linku, domena źródłowa i rodzaj urządzenia.
+   Jeśli skrypt odbiorczy nie jest ustawiony, ta część po prostu nic nie robi. */
+
+function pingArkusz(dane){
+  if(!ODBIOR.googleScript) return;
+  try{
+    fetch(ODBIOR.googleScript,{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(dane)
+    }).catch(()=>{});
+  }catch(e){ /* pomiar nigdy nie może przeszkodzić w obsłudze strony */ }
+}
+
+function zliczWejscie(){
+  try{ if(sessionStorage.getItem('gz.wejscie')==='1') return;
+       sessionStorage.setItem('gz.wejscie','1'); }catch(e){}
+  let kampania='';
+  try{ kampania=new URLSearchParams(location.search).get('utm_campaign')||''; }catch(e){}
+  let skad='';
+  try{ skad=document.referrer ? new URL(document.referrer).hostname : ''; }catch(e){}
+  pingArkusz({
+    akcja:'wejscie',
+    kampania:kampania,
+    skad:skad,
+    urzadzenie: window.matchMedia('(max-width:900px)').matches ? 'telefon' : 'komputer',
+    ekran: window.innerWidth+'x'+window.innerHeight
+  });
+}
 function zdarzenie(nazwa){
   if(ZDARZENIA_ZLICZONE[nazwa]) return;
   ZDARZENIA_ZLICZONE[nazwa]=true;
@@ -3514,6 +3556,7 @@ function zdarzenie(nazwa){
       window.goatcounter.count({path:'etap/'+nazwa, title:'Etap: '+nazwa, event:true});
     }
   }catch(e){ /* licznik nie może przeszkadzać w działaniu planera */ }
+  pingArkusz({akcja:'zdarzenie', nazwa:nazwa});
 }
 
 /* ================= AUTOZAPIS UKŁADU =================
@@ -4178,6 +4221,7 @@ function animate(){
 }
 // Interfejs budujemy zawsze — nawet gdyby scena 3D nie wstała.
 zastosujKonfiguracje();
+zliczWejscie();
 buildFinishUI(); buildCarUI(); buildFilters(); buildCatalogUI(); buildPresets(); buildShopFilters(); renderShop(); renderList();
 buildFaq(); initReveal(); initHeroSim(); syncSceneToggles();
 

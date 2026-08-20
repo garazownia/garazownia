@@ -19,6 +19,7 @@
 const MOJ_MAIL = 'patryk@garazownia.com';
 const NAZWA_ARKUSZA = 'Projekty';
 const NAZWA_KODOW = 'Kody';
+const NAZWA_RUCHU = 'Ruch';
 const WAZNOSC_KODU_H = 48;
 
 /* ============================ WEJŚCIE ============================ */
@@ -29,6 +30,11 @@ function doPost(e) {
 
     if (dane.akcja === 'zapisz_kod') {
       zapiszKod(dane);
+      return odpowiedz({ ok: true });
+    }
+
+    if (dane.akcja === 'wejscie' || dane.akcja === 'zdarzenie') {
+      zapiszRuch(dane);
       return odpowiedz({ ok: true });
     }
 
@@ -125,6 +131,39 @@ function usunPrzeterminowane(ark) {
     const wygasa = new Date(dane[i][2]);
     if (isNaN(wygasa.getTime()) || teraz > wygasa) ark.deleteRow(i + 1);
   }
+}
+
+/* ===================== WŁASNY LICZNIK RUCHU =====================
+   GoatCounter potrafi paść (503 na całej usłudze, 20.08.2026), a wtedy nie
+   wiadomo, ile osób przyszło z posta. Zapisujemy więc wejścia u siebie:
+   data, kampania z linku (?utm_campaign=...), domena źródłowa, rodzaj
+   urządzenia. Bez ciasteczek, bez adresu IP — nie da się z tego wskazać osoby. */
+
+function arkuszRuchu() {
+  const plik = SpreadsheetApp.getActiveSpreadsheet();
+  let ark = plik.getSheetByName(NAZWA_RUCHU);
+  if (!ark) {
+    ark = plik.insertSheet(NAZWA_RUCHU);
+    ark.appendRow(['Data', 'Rodzaj', 'Kampania', 'Skąd', 'Urządzenie', 'Ekran']);
+    ark.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#1C1F22').setFontColor('#FFFFFF');
+    ark.setFrozenRows(1);
+    ark.setColumnWidth(1, 150);
+    ark.setColumnWidth(2, 190);
+  }
+  return ark;
+}
+
+function zapiszRuch(d) {
+  const ark = arkuszRuchu();
+  const rodzaj = d.akcja === 'wejscie' ? 'wejście' : ('etap: ' + String(d.nazwa || '').slice(0, 60));
+  ark.appendRow([
+    new Date(),
+    rodzaj,
+    String(d.kampania || '').slice(0, 60),
+    String(d.skad || '').slice(0, 80),
+    String(d.urzadzenie || ''),
+    String(d.ekran || '')
+  ]);
 }
 
 /* ===================== PROJEKTY WYSŁANE MAILEM ===================== */
