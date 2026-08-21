@@ -3543,6 +3543,31 @@ function pingArkusz(dane){
   }catch(e){ /* pomiar nigdy nie może przeszkodzić w obsłudze strony */ }
 }
 
+
+/* ---- odróżnianie ludzi od robotów ----
+   Samo wejście niewiele znaczy: roboty sprawdzające linki pobierają stronę
+   i wychodzą, nie dotykając niczego. Dlatego osobno zapisujemy „aktywny" —
+   dopiero gdy ktoś realnie coś zrobi na stronie i minęły co najmniej dwie
+   sekundy od wczytania (automat klika natychmiast albo wcale).
+   Liczy się raz na wizytę. */
+(function(){
+  const START = Date.now();
+  let zgloszony = false;
+  try{ if(sessionStorage.getItem('gz.aktywny')==='1') zgloszony = true; }catch(e){}
+
+  function zglos(){
+    if(zgloszony) return;
+    if(Date.now() - START < 2000) return;      // za szybko jak na człowieka
+    zgloszony = true;
+    try{ sessionStorage.setItem('gz.aktywny','1'); }catch(e){}
+    zdarzenie('aktywny');
+    posprzataj();
+  }
+
+  const zdarzenia = ['pointerdown','keydown','wheel','touchstart','scroll'];
+  function posprzataj(){ zdarzenia.forEach(n=>window.removeEventListener(n, zglos, true)); }
+  zdarzenia.forEach(n=>window.addEventListener(n, zglos, {capture:true, passive:true}));
+})();
 function zliczWejscie(){
   try{ if(sessionStorage.getItem('gz.wejscie')==='1') return;
        sessionStorage.setItem('gz.wejscie','1'); }catch(e){}

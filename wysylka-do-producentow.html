@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wysyłka do producentów garaży</title>
+<style>
+  :root{
+    --ink:#1C1F22; --mute:#79838A; --paper:#FCFAF6; --panel:#fff;
+    --line:#E2DCD1; --oak:#B07C2C; --oak-soft:rgba(176,124,44,.12); --good:#2E7D5B;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Arial,sans-serif;
+    --mono:ui-monospace,Consolas,"Cascadia Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       font-size:16px;line-height:1.6;}
+  .wrap{max-width:940px;margin:0 auto;padding:36px 20px 80px;}
+  h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px;}
+  .lead{color:var(--mute);margin:0 0 8px;max-width:70ch;}
+  .krok{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:14px 18px;margin:18px 0 26px;font-size:15px;}
+  .krok b{font-weight:650;}
+  h2{font-size:15px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;
+     color:var(--mute);margin:30px 0 12px;font-weight:600;}
+  .karta{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+         padding:16px 18px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:12px;
+         align-items:center;justify-content:space-between;}
+  .kto{min-width:240px;flex:1 1 260px;}
+  .nazwa{font-weight:650;font-size:17px;}
+  .meta{font-family:var(--mono);font-size:12.5px;color:var(--mute);}
+  .tagi{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+       padding:3px 8px;border-radius:999px;background:var(--oak-soft);color:var(--oak);}
+  .tag.ma{background:rgba(110,123,130,.14);color:#5A666D;}
+  a.btn{display:inline-block;background:var(--ink);color:var(--paper);text-decoration:none;
+        padding:11px 18px;border-radius:10px;font-weight:600;font-size:15px;white-space:nowrap;}
+  a.btn:hover{background:var(--oak);color:#231705;}
+  a.btn.wtorny{background:transparent;color:var(--ink);border:1.5px solid var(--line);}
+  .zrobione{opacity:.45;}
+  .stan{font-family:var(--mono);font-size:12px;color:var(--good);}
+  footer{margin-top:34px;font-size:14px;color:var(--mute);}
+  code{font-family:var(--mono);font-size:13px;background:rgba(0,0,0,.05);padding:2px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Wysyłka do producentów garaży</h1>
+<p class="lead">Kliknięcie otwiera nową wiadomość w Twoim programie pocztowym — adres, temat
+i treść już wpisane. Przeczytaj, dopisz zdanie od siebie, wyślij.</p>
+
+<div class="krok">
+  <b>Zanim klikniesz pierwszy raz:</b> upewnij się, że domyślnym kontem do wysyłki jest
+  <code>patryk@garazownia.com</code>, a nie prywatny gmail. Oferta z firmowej domeny wygląda
+  poważniej i rzadziej trafia do spamu.<br>
+  <b>Udostępnij ofertę</b> (menu na stronie oferty) — inaczej odbiorca zobaczy pustą stronę.
+  Potem wklej jej adres w miejsce <code>[LINK DO OFERTY]</code> w treści maila.<br>
+  <b>Nie wysyłaj wszystkiego w jednej minucie.</b> Kilka dziennie, z drobnymi różnicami w treści.
+</div>
+
+<h2>Bez konfiguratora — piszesz jako pierwszy</h2>
+<div id="grupa-1"></div>
+
+<h2>Średni priorytet</h2>
+<div id="grupa-2"></div>
+
+<h2>Mają już konfigurator — inna wersja maila</h2>
+<div id="grupa-3"></div>
+
+<footer>
+  Zaznaczenia „wysłane" trzymane są w tej przeglądarce. Przepisz je do arkusza
+  <code>producenci-lista-kontaktow.csv</code>, żeby nie zgubić historii.
+</footer>
+</div>
+
+<script>
+const TEMAT = 'Wasz klient sprawdzi, czy jego auto zmiesci sie w garazu - zanim zadzwoni';
+
+function trescStandard(firma){
+  return `Dzien dobry,
+
+nazywam sie Patryk Szatkowski. Zbudowalem konfigurator, ktory pokazuje wnetrze garazu w skali 1:1: klient podaje wymiary, wstawia swoje auto i sprzet, a program liczy, ile centymetrow zostaje na przejscie i czy otworzy drzwi kierowcy.
+
+Mozna kliknac bez rejestracji: https://garazownia.com
+
+Po co to Wam: czlowiek, ktory celuje w najtanszy model, wstawia swojego SUV-a i dwa regaly, widzi "nie otworzysz drzwi kierowcy" - i sam wybiera model wiekszy. Do tego zapytanie, ktore do Was trafia, ma juz model, wymiary bramy i liste dodatkow, wiec wycena zajmuje minuty zamiast trzech telefonow.
+
+U Was dzialaloby to na Waszych modelach, w Waszych kolorach i na Waszej stronie. Zapytania leca prosto na Wasz adres.
+
+Caly zakres, proces wdrozenia i ceny opisalem na jednej stronie: [LINK DO OFERTY]
+
+Szukam pierwszej firmy referencyjnej - u niej wdrozenie robie bez oplaty poczatkowej, w zamian za opinie i zgode na pokazywanie realizacji. Jesli to Was interesuje, odpiszcie albo zadzwoncie.
+
+Patryk Szatkowski
+patryk@garazownia.com
+https://garazownia.com`;
+}
+
+function trescZKonfiguratorem(firma){
+  return `Dzien dobry,
+
+nazywam sie Patryk Szatkowski. Widze, ze macie na stronie konfigurator garazu - pokazuje bryle z zewnatrz: kolor blachy, brame, ksztalt dachu.
+
+Zbudowalem cos, czego tamten nie robi: wpuszcza klienta do srodka. Klient wstawia swoje auto i sprzet, a program liczy w centymetrach, ile zostaje na przejscie i czy otworzy drzwi kierowcy. Mozna kliknac bez rejestracji: https://garazownia.com
+
+To jest argument za wiekszym modelem, a nie za innym kolorem. Czlowiek, ktory celuje w najtanszy garaz, sam wybiera wiekszy, kiedy zobaczy, ze nie otworzy drzwi.
+
+Da sie to wpiac jako uzupelnienie tego, co juz macie - na Waszych modelach i z zapytaniami lecacymi na Wasz adres.
+
+Szczegoly i ceny: [LINK DO OFERTY]
+
+Patryk Szatkowski
+patryk@garazownia.com
+https://garazownia.com`;
+}
+
+const FIRMY = [
+  {g:1, nazwa:'AMIGO Garaże',  mail:'amigo.garaze@gmail.com',     tel:'783 223 219', miasto:'Szczyrzyc', nota:'garaże ocieplane z płyty warstwowej'},
+  {g:1, nazwa:'STALTERM',      mail:'biuro@stalterm.pl',          tel:'666 177 122', miasto:'Koszalin',  nota:'producent blach i garaży z płyty'},
+  {g:1, nazwa:'BLACHMET',      mail:'biuroblachmet@gmail.com',    tel:'796 003 901', miasto:'Jodłownik', nota:'25 wymiarów w ofercie'},
+  {g:1, nazwa:'Modern Garage', mail:'info@modern-garage.pl',      tel:'—',           miasto:'Limanowa',  nota:'blaszane i z płyty, sprzedaje też za granicę'},
+  {g:1, nazwa:'Stal Blach',    mail:'biuro@stalblach.pl',         tel:'603 809 850', miasto:'—',        nota:'garaże, bramy, wiaty, konstrukcje'},
+  {g:2, nazwa:'Mobilbud',      mail:'biuro@mobilbud.pl',          tel:'795 998 823', miasto:'—',        nota:'garaże z płyt, stróżówki, kontenery'},
+  {g:2, nazwa:'Stalgar',       mail:'biuro@garaze.org.pl',        tel:'728 505 030', miasto:'Kraków / Warszawa', nota:'premium, RAL, dwustanowiskowe'},
+  {g:2, nazwa:'Ekostal',       mail:'kontakt@tanieblaszaki.pl',   tel:'723 950 064', miasto:'—',        nota:'gra ceną — konfigurator może nie pasować do pozycjonowania'},
+  {g:2, nazwa:'Viastal',       mail:'kontakt@vistal-garaze-blaszane.pl', tel:'693 344 132', miasto:'—', nota:'blaszane i drewnopodobne, bramy'},
+  {g:3, nazwa:'ROBEXstal',     mail:'biuro@robexstal.pl',         tel:'723 359 028', miasto:'—',        nota:'ma konfigurator garaży ocieplanych'},
+  {g:3, nazwa:'IGOPOL',        mail:'biuro@igopol.pl',            tel:'793 429 592', miasto:'Jurków',   nota:'korzysta z konfiguratora firmy zewnętrznej'},
+  {g:3, nazwa:'LiderStal',     mail:'',                           tel:'535 004 967', miasto:'—',        nota:'mail ukryty przed robotami — dzwoń albo formularz na stronie'}
+];
+
+const KLUCZ='garazownia.wysylka.v1';
+let wyslane={};
+try{ wyslane=JSON.parse(localStorage.getItem(KLUCZ)||'{}'); }catch(e){}
+
+function zapisz(){ try{ localStorage.setItem(KLUCZ, JSON.stringify(wyslane)); }catch(e){} }
+
+function link(f){
+  const tresc = f.g===3 ? trescZKonfiguratorem(f.nazwa) : trescStandard(f.nazwa);
+  return 'mailto:'+encodeURIComponent(f.mail)+
+         '?subject='+encodeURIComponent(TEMAT)+
+         '&body='+encodeURIComponent(tresc);
+}
+
+function rysuj(){
+  [1,2,3].forEach(g=>{
+    const host=document.getElementById('grupa-'+g); host.innerHTML='';
+    FIRMY.filter(f=>f.g===g).forEach(f=>{
+      const k=document.createElement('div');
+      k.className='karta'+(wyslane[f.nazwa]?' zrobione':'');
+      const maBtn = f.mail
+        ? `<a class="btn" href="${link(f)}" onclick="oznacz('${f.nazwa.replace(/'/g,"\\'")}')">Napisz</a>`
+        : `<a class="btn wtorny" href="https://liderstal.pl/" target="_blank" rel="noopener">Formularz na stronie</a>`;
+      k.innerHTML = `
+        <div class="kto">
+          <div class="nazwa">${f.nazwa}</div>
+          <div class="meta">${f.mail || 'brak maila'} · ${f.tel} · ${f.miasto}</div>
+          <div class="tagi"><span class="tag${f.g===3?' ma':''}">${f.g===3?'ma konfigurator':'bez konfiguratora'}</span>
+            <span class="tag ma">${f.nota}</span></div>
+          ${wyslane[f.nazwa]?`<div class="stan">wysłane ${wyslane[f.nazwa]}</div>`:''}
+        </div>
+        ${maBtn}`;
+      host.appendChild(k);
+    });
+  });
+}
+
+function oznacz(nazwa){
+  wyslane[nazwa]=new Date().toISOString().slice(0,10);
+  zapisz(); setTimeout(rysuj,300);
+}
+
+rysuj();
+</script>
+</body>
+</html>
