@@ -3537,10 +3537,10 @@ const ZDARZENIA_ZLICZONE={};
    bez tej obsługi każdy ping trafia do funkcji od projektów i generuje
    maila „Nowy projekt garażu (0 elem.)" przy każdym wejściu na stronę.
    Włącz z powrotem dopiero po wdrożeniu nowej wersji skryptu. */
-const LICZNIK_ARKUSZ = false;
+const LICZNIK_ARKUSZ = true;
 
 function pingArkusz(dane){
-  if(!LICZNIK_ARKUSZ) return;              /* awaria 21.08: skrypt bez obslugi akcji "wejscie" */
+  if(!LICZNIK_ARKUSZ) return;              /* wylacznik na wypadek skryptu bez obslugi akcji "wejscie" */
   if(!ODBIOR.googleScript) return;
   try{
     fetch(ODBIOR.googleScript,{
