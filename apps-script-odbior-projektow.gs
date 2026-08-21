@@ -40,6 +40,7 @@ function doPost(e) {
 
     zapiszDoArkusza(dane);
     wyslijPowiadomienie(dane);
+    wyslijKopieKlientowi(dane);
     return odpowiedz({ ok: true });
   } catch (err) {
     console.error(err);
@@ -193,6 +194,27 @@ function zapiszDoArkusza(d) {
     d.podsumowanie || '',
     d.kod_projektu || ''
   ]);
+}
+
+
+/* Kopia dla klienta — obiecujemy na stronie, że dostanie listę i kod projektu,
+   więc musi to przyjść samo, a nie dopiero gdy Patryk usiądzie do maila. */
+function wyslijKopieKlientowi(d) {
+  const mail = String(d.email || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return;
+  MailApp.sendEmail({
+    to: mail,
+    subject: 'Twój projekt garażu ' + (d.wymiary || ''),
+    replyTo: MOJ_MAIL,
+    body:
+      'Dziękuję za przesłanie projektu. Poniżej wszystko, co ustawiłeś w planerze.\n\n' +
+      (d.podsumowanie || '') +
+      '\n\nKod projektu: ' + (d.kod_projektu || '-') + '\n' +
+      'Wejdź na https://garazownia.com, kliknij "Wczytaj kod" i wklej te znaki,\n' +
+      'żeby wrócić do tego układu na dowolnym urządzeniu. Kod działa 48 godzin.\n\n' +
+      'Odpiszę osobiście z uwagami, zwykle w ciągu jednego dnia roboczego.\n\n' +
+      'Patryk Szatkowski\n' + MOJ_MAIL
+  });
 }
 
 function wyslijPowiadomienie(d) {

@@ -893,6 +893,9 @@
     border-radius:12px; max-width:min(92vw,420px); box-shadow:0 12px 30px rgba(0,0,0,.32);
     opacity:0; pointer-events:none; transition:opacity .22s, transform .22s; z-index:90;}
   .toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
+  /* Formularz mailowy odsłaniany po pobraniu rzutu — patrz pobierzRzut(). */
+  .lead-form[hidden]{display:none;}
+  .lead-form{border-top:1px solid rgba(255,255,255,.12); margin-top:18px; padding-top:2px;}
   .krok4-akcje{display:flex; gap:8px; margin:12px 0 4px;}
   .krok4-akcje button{flex:1 1 0; padding:11px 10px; border-radius:11px; cursor:pointer;
     border:1.5px solid var(--ink); background:transparent; color:var(--ink);
@@ -1224,17 +1227,26 @@
         <ul class="plist" id="plist"></ul>
         <div class="sum"><span style="font-size:12px;color:var(--mute);">Szacunkowo</span><span class="sv" id="total">0 zł</span></div>
         <div class="lead">
-          <h5>Wyślij projekt i dostań podpowiedzi</h5>
-          <p>Przejrzę Twój układ i odpiszę osobiście, zwykle w ciągu jednego dnia roboczego:
-             co poprawić, żeby nie zabrakło miejsca, i gdzie kupić sprzęt taniej.
-             Do tego dostaniesz listę elementów z wymiarami i wynikami pomiarów.</p>
-          <input type="email" id="leadEmail" placeholder="twoj@email.pl">
-          <label class="consent"><input type="checkbox" id="leadConsent"><span>Zgadzam się na kontakt mailowy w sprawie mojego projektu. Zapoznałem się z <a onclick="event.preventDefault();event.stopPropagation();openDoc('docPrivacy')" href="#" style="color:var(--oak);text-decoration:underline">polityką prywatności</a>.</span></label>
-          <button class="btn-lead" onclick="sendProject()">Wyślij projekt</button>
+          <h5>Weź swój projekt ze sobą</h5>
+          <p>Pobierz rzut swojego garażu — wymiary, rozstawienie i wynik pomiaru na jednym obrazku.
+             Przyda się w sklepie i przy rozmowie z wykonawcą. Nie musisz nic podawać.</p>
+          <button class="btn-lead" onclick="pobierzRzut()">Pobierz rzut garażu</button>
           <div class="lead-extra">
-            <button onclick="snapshotProject()">Pobierz obraz</button>
             <button onclick="zapiszKodProjektu()">Zapisz kod</button>
             <button onclick="promptLoadCode()">Wczytaj kod</button>
+            <button onclick="pokazFormularzMailowy(true)">Wolę na maila</button>
+          </div>
+
+          <!-- Formularz pokazuje się dopiero po pobraniu rzutu albo po kliknięciu „Wolę na maila”.
+               Prosimy o adres dopiero wtedy, gdy człowiek już coś dostał. -->
+          <div id="leadForm" class="lead-form" hidden>
+            <h5 style="margin-top:22px;">Wysłać to na maila?</h5>
+            <p>Dostaniesz listę elementów z wymiarami, wynik pomiaru i kod projektu, którym wrócisz
+               do tego układu na innym urządzeniu. Do tego odpiszę osobiście, zwykle w ciągu jednego
+               dnia roboczego: co poprawić, żeby nie zabrakło miejsca.</p>
+            <input type="email" id="leadEmail" placeholder="twoj@email.pl">
+            <label class="consent"><input type="checkbox" id="leadConsent"><span>Zgadzam się na kontakt mailowy w sprawie mojego projektu. Zapoznałem się z <a href="#" onclick="otworzDok('polityka');return false;">polityką prywatności</a>.</span></label>
+            <button class="btn-lead" onclick="sendProject()">Wyślij projekt</button>
           </div>
           <div class="ok" id="okMsg">Projekt zapisany. Odezwiemy się na podany adres.</div>
         </div>
@@ -3703,6 +3715,38 @@ function dopasujKadrDoGarazu(aspekt){
   updateCam();
 }
 
+
+/* ==================== POBIERZ RZUT, POTEM MAIL ====================
+   Wcześniej pierwszą rzeczą w panelu była prośba o adres e-mail, a obrazek
+   leżał w drugim rzędzie jako przycisk pomocniczy. Ludzie dochodzili do wyniku
+   i wychodzili — bo w zamian za adres dostawali obietnicę, a nie rzecz.
+   Teraz odwrotnie: najpierw dajemy rzut do pobrania, a o adres pytamy dopiero
+   wtedy, gdy człowiek już coś dostał. */
+
+function pokazFormularzMailowy(przewin){
+  const f=document.getElementById('leadForm');
+  if(!f) return;
+  f.hidden=false;
+  if(przewin){
+    const e=document.getElementById('leadEmail');
+    f.scrollIntoView({block:'center',behavior:'smooth'});
+    setTimeout(()=>{ if(e) e.focus(); },350);
+  }
+}
+
+function pobierzRzut(){
+  if(!placed.length){
+    komunikat('Najpierw ustaw coś w garażu — pusty rzut nic nie pokaże.');
+    return;
+  }
+  zdarzenie('rzut-pobrany');
+  snapshotProject();
+  /* Formularz odsłaniamy chwilę później, żeby nie zasłonić samego pobrania. */
+  setTimeout(()=>{
+    pokazFormularzMailowy(false);
+    komunikat('Rzut zapisany na dysku. Chcesz go dostać mailem razem z listą i kodem projektu?');
+  }, 1200);
+}
 function snapshotProject(){
   if(!renderer||!scene||!camera){ alert('Podgląd 3D nie jest jeszcze gotowy.'); return; }
 
